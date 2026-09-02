@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local data caches (experiment figures/tables are committed)
+data/cache/
+.pytest_cache/
