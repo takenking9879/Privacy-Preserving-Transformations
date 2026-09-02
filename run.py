@@ -18,8 +18,12 @@ def main() -> None:
     parser.add_argument("--quick", action="store_true", help="Smaller data and config subset")
     args = parser.parse_args()
     run_experiments(quick=args.quick)
-    path = generate_report()
-    print(f"Wrote {path}", flush=True)
+    try:
+        path = generate_report()
+        print(f"Wrote {path}", flush=True)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Report generation failed: {exc}", flush=True)
+        raise
 
 
 if __name__ == "__main__":

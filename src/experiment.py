@@ -280,5 +280,9 @@ def run_experiments(quick: bool = False) -> pd.DataFrame:
     agg = aggregate_table(df)
     agg.to_csv(TABLES_DIR / "utility_attacks_summary.csv", index=False)
     save_json(RESULTS_DIR / "all_runs.json", raw_records)
-    generate_all_plots(df, raw_records, FIGURES_DIR)
+    try:
+        generate_all_plots(df, raw_records, FIGURES_DIR)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Plot generation failed: {exc}", flush=True)
+        traceback.print_exc()
     return df

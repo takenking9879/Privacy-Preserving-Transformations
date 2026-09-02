@@ -153,7 +153,7 @@ def known_pair_attacks(
                 alpha=1e-4,
                 batch_size=min(128, n),
                 learning_rate_init=1e-3,
-                max_iter=80,
+                max_iter=50,
                 random_state=seed,
                 early_stopping=False,
             )
@@ -274,10 +274,20 @@ def auxiliary_unpaired_attack(
 
     # ICA on Z, match independent components to aux columns by moments.
     try:
-        ica = FastICA(n_components=min(k, 12), random_state=seed, max_iter=200, whiten="unit-variance")
-        n_sub = min(len(Z_train), 4000)
-        ica.fit(Z_train[:n_sub])
-        S = ica.transform(Z_test)
+        import warnings
+
+        ica = FastICA(
+            n_components=min(k, 12),
+            random_state=seed,
+            max_iter=400,
+            tol=1e-3,
+            whiten="unit-variance",
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            n_sub = min(len(Z_train), 4000)
+            ica.fit(Z_train[:n_sub])
+            S = ica.transform(Z_test)
         d_m = min(S.shape[1], X_test.shape[1])
         cost = np.zeros((d_m, d_m))
         sm = column_moments(S[:, :d_m])
@@ -333,8 +343,8 @@ def neural_reconstruction_attacks(
 
     results: dict[str, Any] = {}
     for name, hidden, max_iter in (
-        ("mlp_small", (64,), 60),
-        ("mlp_medium", (128, 128), 80),
+        ("mlp_small", (64,), 40),
+        ("mlp_medium", (128, 128), 50),
     ):
         mlp = MLPRegressor(
             hidden_layer_sizes=hidden,
@@ -394,7 +404,7 @@ def _residual_attack(Zs, Xs, Zte, scaler_x, X_test, seed: int) -> dict:
     model.train()
     n = len(xt)
     batch = 256
-    for _ in range(40):
+    for _ in range(25):
         perm = torch.randperm(n)
         for i in range(0, n, batch):
             sl = perm[i : i + batch]

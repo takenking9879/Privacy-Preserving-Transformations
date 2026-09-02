@@ -223,13 +223,16 @@ def _plot_pareto(agg: pd.DataFrame, out_dir: Path) -> None:
         leak = g["worst_mean"].fillna(g["recon_mean"])
         ax.scatter(leak, g["r2_retention_mean"], s=55, label=ds)
         for _, row in g.iterrows():
-            ax.annotate(
-                row["method"],
-                (row["worst_mean"] if pd.notna(row["worst_mean"]) else row["recon_mean"], row["r2_retention_mean"]),
-                fontsize=6,
-                xytext=(4, 4),
-                textcoords="offset points",
-            )
+            x = row["worst_mean"] if pd.notna(row["worst_mean"]) else row["recon_mean"]
+            y = row["r2_retention_mean"]
+            if pd.notna(x) and pd.notna(y):
+                ax.annotate(
+                    row["method"],
+                    (x, y),
+                    fontsize=6,
+                    xytext=(4, 4),
+                    textcoords="offset points",
+                )
     ax.set_xlabel("Worst-attribute leakage (known-pair ridge $R^2$)")
     ax.set_ylabel("$R^2$ retention")
     ax.set_title("Privacy / utility Pareto scatter (utility on vertical axis)")
