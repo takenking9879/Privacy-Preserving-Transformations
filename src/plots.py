@@ -22,6 +22,17 @@ plt.rcParams.update(
     }
 )
 
+HIGHLIGHT_METHODS = {
+    "raw",
+    "gauss",
+    "gauss_white_rot",
+    "gw_q16_rot",
+    "gw_q16_p50_rot",
+    "bn50",
+    "bn50_q16_rot",
+    "bn50_adv_rot",
+}
+
 
 def _agg(df: pd.DataFrame) -> pd.DataFrame:
     return (
@@ -225,7 +236,7 @@ def _plot_pareto(agg: pd.DataFrame, out_dir: Path) -> None:
         for _, row in g.iterrows():
             x = row["worst_mean"] if pd.notna(row["worst_mean"]) else row["recon_mean"]
             y = row["r2_retention_mean"]
-            if pd.notna(x) and pd.notna(y):
+            if pd.notna(x) and pd.notna(y) and row["method"] in HIGHLIGHT_METHODS:
                 ax.annotate(
                     row["method"],
                     (x, y),

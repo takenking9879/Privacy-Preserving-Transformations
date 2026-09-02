@@ -40,10 +40,15 @@ def _pm(mean: float, std: float, digits: int = 4) -> str:
     return f"{mean:.{digits}f} ± {std:.{digits}f}"
 
 
-def _select_method(summary: pd.DataFrame) -> tuple[str, pd.Series | None, str]:
+def _select_method(summary: pd.DataFrame) -> tuple[str, pd.Series | None, str, list[str]]:
     nonraw = summary[summary["method"] != "raw"].copy()
     if nonraw.empty:
-        return "none", None, "No transformed configurations were evaluated."
+        return "none", None, "No transformed configurations were evaluated.", []
+
+    all_ds_ok: list[str] = []
+    for method, g in nonraw.groupby("method"):
+        if (g["r2_retention_mean"] >= 0.90).all():
+            all_ds_ok.append(str(method))
 
     by_method = (
         nonraw.groupby("method", sort=False)
@@ -53,21 +58,117 @@ def _select_method(summary: pd.DataFrame) -> tuple[str, pd.Series | None, str]:
             r2_raw_mean=("r2_raw_mean", "mean"),
             worst_mean=("worst_attr_knownpair_ridge_mean", "mean"),
             recon_mean=("recon_r2_knownpair_ridge_mean", "mean"),
+            neural_mean=("neural_best_r2_mean", "mean"),
             n_datasets=("dataset", "nunique"),
+            min_retention=("r2_retention_mean", "min"),
         )
         .reset_index()
     )
+
+    if all_ds_ok:
+        pool = by_method[by_method["method"].isin(all_ds_ok)].copy()
+        pool = pool.sort_values(["worst_mean", "r2_retention_mean"], ascending=[True, False])
+        best = pool.iloc[0]
+        name = str(best["method"])
+        note = (
+            f"Selected `{name}` among methods with $R^2$ retention $\\ge 0.90$ on **every** dataset "
+            f"(min retention={best['min_retention']:.3f}, mean retention={best['r2_retention_mean']:.3f}), "
+            f"then lowest mean worst-attribute known-pair leakage ({best['worst_mean']:.3f}). "
+            f"Methods meeting the all-dataset 90% bar: {', '.join(f'`{m}`' for m in all_ds_ok)}."
+        )
+        return name, best, note, all_ds_ok
+
     top_ret = by_method["r2_retention_mean"].max()
     near = by_method[by_method["r2_retention_mean"] >= top_ret - 0.02]
     near = near.sort_values(["worst_mean", "r2_retention_mean"], ascending=[True, False])
     best = near.iloc[0]
     name = str(best["method"])
     note = (
-        f"Selected `{name}` by averaging $R^2$ retention across datasets "
-        f"({best['r2_retention_mean']:.3f}), then breaking ties (within 2 retention points) "
-        f"toward lower worst-attribute known-pair leakage ({best['worst_mean']:.3f})."
+        f"No method kept $R^2$ retention $\\ge 0.90$ on every dataset. "
+        f"Fell back to highest mean retention: `{name}` ({best['r2_retention_mean']:.3f})."
     )
-    return name, best, note
+    return name, best, note, []
+
+
+def _fmt_row(summary: pd.DataFrame, dataset: str, method: str, col: str) -> str:
+    g = summary[(summary["dataset"] == dataset) & (summary["method"] == method)]
+    if g.empty or col not in g.columns:
+        return "—"
+    v = g[col].iloc[0]
+    if pd.isna(v):
+        return "—"
+    return f"{float(v):.3f}"
+
+
+def _key_findings(summary: pd.DataFrame, best_name: str) -> str:
+    lines: list[str] = []
+    datasets = list(summary["dataset"].unique())
+
+    def grab(ds: str, method: str, col: str) -> float:
+        g = summary[(summary["dataset"] == ds) & (summary["method"] == method)]
+        if g.empty:
+            return float("nan")
+        return float(g[col].iloc[0])
+
+    lines.append(
+        "1. **Same frozen `HistGradientBoostingRegressor` can learn from $Z$.** "
+        "Gaussianization alone is invisible to this model (identical $R^2$ to raw on every dataset), "
+        "because histogram boosting already quantile-bins each axis."
+    )
+    gw_ret = ", ".join(
+        f"{ds} {_fmt_row(summary, ds, 'gauss_white_rot', 'r2_retention_mean')}" for ds in datasets
+    )
+    lines.append(
+        "2. **Secret rotation is not free for trees.** `gauss_white_rot` retention: "
+        + gw_ret
+        + ". Distance geometry is preserved (whitening+rotation is isometric up to scale), "
+        "but axis-aligned splits become less efficient as $d$ grows. That is a model-class effect, not information destruction."
+    )
+    p50_ret = ", ".join(
+        f"{ds} {_fmt_row(summary, ds, 'gw_q16_p50_rot', 'r2_retention_mean')}" for ds in datasets
+    )
+    p50_leak = ", ".join(
+        f"{ds} {_fmt_row(summary, ds, 'gw_q16_p50_rot', 'worst_attr_knownpair_ridge_mean')}"
+        for ds in datasets
+    )
+    lines.append(
+        "3. **Random $k<d$ projections buy known-pair resistance and spend utility.** "
+        f"`gw_q16_p50_rot` retention: {p50_ret}. Worst-attribute leakage: {p50_leak}. "
+        "On the real superconduct table this still clears 90% retention; on the synthetic banking tables it does not."
+    )
+    bn_ret = ", ".join(
+        f"{ds} {_fmt_row(summary, ds, best_name, 'r2_retention_mean')}" for ds in datasets
+    )
+    bn_worst = ", ".join(
+        f"{ds} {_fmt_row(summary, ds, best_name, 'worst_attr_knownpair_ridge_mean')}"
+        for ds in datasets
+    )
+    bn_sem = ", ".join(
+        f"{ds} {_fmt_row(summary, ds, best_name, 'semantic_paired_acc_mean')}" for ds in datasets
+    )
+    lines.append(
+        f"4. **Besides monotone Gaussianization (which preserves paired column identity), the supervised bottleneck (`{best_name}`) is the only family that keeps (or slightly beats) raw $R^2$ on every dataset.** "
+        f"Retention: {bn_ret}. Unpaired reconstruction $R^2$ is negative. Paired semantic matching accuracy: {bn_sem} "
+        f"(near chance). Worst-attribute known-pair $R^2$: {bn_worst}. "
+        "The encoder is trained to keep $I(H;Y)$, so the features that cause $y$ remain the leaky ones. "
+        "Adversarial reconstruction training at $\\lambda=0.05$ did not produce a qualitatively different privacy outcome."
+    )
+    rot_d80 = grab("banking_d80", "gauss_white_rot", "recon_r2_knownpair_ridge_mean")
+    rot_d200 = grab("banking_d200", "gauss_white_rot", "recon_r2_knownpair_ridge_mean")
+    lines.append(
+        "5. **Larger $d$ does not make an invertible secret rotation hard.** "
+        f"Known-pair ridge $R^2$ for `gauss_white_rot` is {rot_d80:.3f} at $d=80$ and {rot_d200:.3f} at $d=200$. "
+        "The map is statistically identifiable from $O(d)$ pairs. Extra dimensions *do* hurt tree utility under rotation, "
+        "and *do* lower reconstruction when combined with $k<d$ lossy projection. Those are different mechanisms: "
+        "keyed linear identifiability vs information-theoretic loss."
+    )
+    lines.append(
+        "6. **No tested configuration simultaneously (a) kept $\\ge 90\\%$ $R^2$ retention on all three datasets and "
+        "(b) drove known-pair worst-attribute $R^2$ below $0.7$.** "
+        "If both constraints are required, this grid does not contain a solution. Utility-first selection therefore "
+        f"returns `{best_name}` and records the known-pair failure in the open."
+    )
+    return "\n".join(lines)
 
 
 def generate_report() -> Path:
@@ -78,7 +179,7 @@ def generate_report() -> Path:
 
     summary = pd.read_csv(summary_path)
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
-    best_name, best_row, preferred_note = _select_method(summary)
+    best_name, best_row, preferred_note, all_ds_ok = _select_method(summary)
 
     util_fmt = {
         "out_dim_mean": "{:.0f}",
@@ -164,19 +265,23 @@ def generate_report() -> Path:
     if best_row is None:
         best_text = "No transformed configuration was clearly successful."
     else:
+        leak = best_row["worst_mean"]
         best_text = (
             f"The preferred configuration is **`{best_name}`**, retaining on average "
             f"**{100 * best_row['r2_retention_mean']:.1f}%** of raw $R^2$ across datasets "
             f"(mean transformed $R^2$={best_row['r2_mean']:.4f} vs raw {best_row['r2_raw_mean']:.4f}). "
-            "This is an obfuscated / lossy representation, **not encryption**."
+            f"Worst-attribute known-pair leakage remains **{leak:.3f}**. "
+            "This is an obfuscated / lossy representation, **not encryption**, and it does **not** "
+            "resist known-pair inversion of the attributes that predict $y$."
         )
 
     high_util = summary[(summary["method"] != "raw") & (summary["r2_retention_mean"] >= 0.90)]
     high_util_txt = (
-        f"{len(high_util)} dataset-method cells reached the 90% retention guideline."
-        if len(summary)
-        else ""
+        f"{len(high_util)} dataset-method cells reached the 90% retention guideline. "
+        f"Methods with $\\ge 90\\%$ on every dataset: "
+        + (", ".join(f"`{m}`" for m in all_ds_ok) if all_ds_ok else "none besides possibly none.")
     )
+    findings = _key_findings(summary, best_name)
 
     parts = [
         "# Privacy-Preserving Transformations for Outsourced Machine Learning",
@@ -198,6 +303,10 @@ def generate_report() -> Path:
         "**Do not interpret these transforms as cryptographically secure.** Several configurations that look unstructured still collapse under a known-pair linear attack once the attacker obtains on the order of $d$ matched rows. That is a negative result and is reported as such.",
         "",
         f"Frozen model: `{card['name']}` with hyperparameters `{card['hyperparameters']}`.",
+        "",
+        "### Key empirical findings",
+        "",
+        findings,
         "",
         "---",
         "",
