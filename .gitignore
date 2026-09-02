@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local data caches (experiment figures/tables are committed)
+data/cache/
+.pytest_cache/
+results_run.log
+
+# Per-run JSON dumps (large); summaries/figures are committed
+results/all_runs.json
+results/openml_superconduct/
+results/banking_d80/
+results/banking_d200/
