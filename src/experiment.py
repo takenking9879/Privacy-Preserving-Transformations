@@ -93,7 +93,7 @@ def run_one(
         row["rmse_ratio"] = 1.0
         row["mae_ratio"] = 1.0
 
-    heavy = run_heavy and spec.name in HEAVY_ATTACK_CONFIGS
+            heavy = run_heavy and spec.name in HEAVY_ATTACK_CONFIGS and seed == 0
     try:
         row["attacks"] = run_attacks(
             X_train,

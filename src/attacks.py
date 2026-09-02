@@ -10,7 +10,6 @@ from scipy.stats import kurtosis, skew, ortho_group
 from sklearn.cross_decomposition import CCA
 from sklearn.decomposition import FastICA
 from sklearn.linear_model import Ridge
-from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 from src.config import DISTANCE_SUBSAMPLE, KNOWN_PAIR_GRID, NEURAL_ATTACK_SUBSAMPLE
@@ -140,26 +139,15 @@ def known_pair_attacks(
         except Exception as exc:  # noqa: BLE001
             row["pinv"] = {"error": str(exc)}
 
-        row["informed_procrustes"] = _informed_procrustes(
-            Xk, Zk, X_test, Z_test, X_aux, transform
-        )
+            row["informed_procrustes"] = None
+            if n in {10, 50, 100, 500, 1000} or n == grid[-1]:
+                row["informed_procrustes"] = _informed_procrustes(
+                    Xk, Zk, X_test, Z_test, X_aux, transform
+                )
 
-        if heavy and n in {50, 100, 500} and n >= 20:
-            hidden = (64, 64) if n < 200 else (128, 64)
-            mlp = MLPRegressor(
-                hidden_layer_sizes=hidden,
-                activation="relu",
-                solver="adam",
-                alpha=1e-4,
-                batch_size=min(128, n),
-                learning_rate_init=1e-3,
-                max_iter=50,
-                random_state=seed,
-                early_stopping=False,
-            )
+        if heavy and n in {100, 500} and n >= 20:
             try:
-                pred = _fit_predict_multi(mlp, Zk, Xk, Z_test)
-                row["mlp"] = reconstruction_report(X_test, pred)
+                row["mlp"] = _torch_mlp_attack(Zk, Xk, Z_test, X_test, seed, hidden=(64, 64), epochs=25)
             except Exception as exc:  # noqa: BLE001
                 row["mlp"] = {"error": str(exc)}
 
@@ -324,6 +312,46 @@ def auxiliary_unpaired_attack(
     return out
 
 
+def _torch_mlp_attack(
+    Z_tr, X_tr, Z_te, X_te, seed: int, hidden: tuple[int, ...] = (128, 64), epochs: int = 30
+) -> dict:
+    if torch is None or nn is None:
+        return {"error": "torch unavailable"}
+    scaler_z = StandardScaler()
+    scaler_x = StandardScaler()
+    Zs = scaler_z.fit_transform(Z_tr)
+    Xs = scaler_x.fit_transform(X_tr)
+    Zte = scaler_z.transform(Z_te)
+    layers: list[nn.Module] = []
+    d = Zs.shape[1]
+    for h in hidden:
+        layers.extend([nn.Linear(d, h), nn.ReLU()])
+        d = h
+    layers.append(nn.Linear(d, Xs.shape[1]))
+    torch.manual_seed(seed)
+    model = nn.Sequential(*layers)
+    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    xt = torch.tensor(Zs, dtype=torch.float32)
+    yt = torch.tensor(Xs, dtype=torch.float32)
+    n = len(xt)
+    batch = min(256, n)
+    model.train()
+    for _ in range(epochs):
+        perm = torch.randperm(n)
+        for i in range(0, n, batch):
+            sl = perm[i : i + batch]
+            pred = model(xt[sl])
+            loss = torch.mean((pred - yt[sl]) ** 2)
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+    model.eval()
+    with torch.no_grad():
+        pred = model(torch.tensor(Zte, dtype=torch.float32)).numpy()
+    pred = scaler_x.inverse_transform(pred)
+    return reconstruction_report(X_te, pred)
+
+
 def neural_reconstruction_attacks(
     Z_train: np.ndarray,
     X_train: np.ndarray,
@@ -335,35 +363,22 @@ def neural_reconstruction_attacks(
     n = min(len(Z_train), NEURAL_ATTACK_SUBSAMPLE)
     idx = rng.choice(len(Z_train), size=n, replace=False)
     Ztr, Xtr = Z_train[idx], X_train[idx]
+    results: dict[str, Any] = {}
+    try:
+        results["mlp_small"] = _torch_mlp_attack(Ztr, Xtr, Z_test, X_test, seed, hidden=(64,), epochs=25)
+    except Exception as exc:  # noqa: BLE001
+        results["mlp_small"] = {"error": str(exc)}
+    try:
+        results["mlp_medium"] = _torch_mlp_attack(
+            Ztr, Xtr, Z_test, X_test, seed, hidden=(128, 128), epochs=30
+        )
+    except Exception as exc:  # noqa: BLE001
+        results["mlp_medium"] = {"error": str(exc)}
     scaler_z = StandardScaler()
     scaler_x = StandardScaler()
     Zs = scaler_z.fit_transform(Ztr)
     Xs = scaler_x.fit_transform(Xtr)
     Zte = scaler_z.transform(Z_test)
-
-    results: dict[str, Any] = {}
-    for name, hidden, max_iter in (
-        ("mlp_small", (64,), 40),
-        ("mlp_medium", (128, 128), 50),
-    ):
-        mlp = MLPRegressor(
-            hidden_layer_sizes=hidden,
-            activation="relu",
-            solver="adam",
-            alpha=1e-4,
-            batch_size=128,
-            learning_rate_init=1e-3,
-            max_iter=max_iter,
-            random_state=seed,
-            early_stopping=False,
-        )
-        try:
-            mlp.fit(Zs, Xs)
-            pred = scaler_x.inverse_transform(mlp.predict(Zte))
-            results[name] = reconstruction_report(X_test, pred)
-        except Exception as exc:  # noqa: BLE001
-            results[name] = {"error": str(exc)}
-
     results["mlp_residual"] = _residual_attack(Zs, Xs, Zte, scaler_x, X_test, seed)
     return results
 
