@@ -102,7 +102,7 @@ def train_bottleneck(
     adversarial: bool,
     seed: int,
     hidden: int = 80,
-    epochs: int = 18,
+    epochs: int = 22,
     batch_size: int = 256,
     lr: float = 1e-3,
     adv_lambda: float = 0.08,
@@ -153,7 +153,7 @@ def train_vib(
     beta: float,
     seed: int,
     hidden: int = 80,
-    epochs: int = 20,
+    epochs: int = 24,
     batch_size: int = 256,
     lr: float = 1e-3,
 ) -> NumpyEncoder:

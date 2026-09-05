@@ -35,7 +35,7 @@ def test_identity_target_is_plaintext():
     assert tfm.target_map.shift == 0.0
 
 
-@pytest.mark.parametrize("name", ["gauss", "typed_keyed", "keyed_monotone", "rff"])
+@pytest.mark.parametrize("name", ["gauss", "typed_keyed", "keyed_monotone", "rff", "secret_affine", "std_rot"])
 def test_transformed_columns_are_anonymous(name):
     table = make_banking_mixed(n=200, seed=3, task="regression")
     idx = np.arange(140)

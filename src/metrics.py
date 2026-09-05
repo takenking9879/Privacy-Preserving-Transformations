@@ -43,7 +43,13 @@ def reconstruction_report(X_true: np.ndarray, X_hat: np.ndarray) -> dict:
     r2j = per_feature_r2(X_true, X_hat)
     order = np.argsort(r2j)[::-1]
     return {
-        "global_r2": float(r2_score(X_true, X_hat, multioutput="uniform_average"))
+        "global_r2": float(
+            np.clip(
+                r2_score(X_true, X_hat, multioutput="uniform_average") if X_true.size else np.nan,
+                -5.0,
+                1.0,
+            )
+        )
         if X_true.size
         else float("nan"),
         "mean_feature_r2": float(np.mean(r2j)) if r2j.size else float("nan"),

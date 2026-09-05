@@ -126,6 +126,76 @@ class IdentityTransform(BaseTransform):
         return self.encoder.transform(frame)
 
 
+class SecretAffineTransform(BaseTransform):
+    """Per-column secret scale/shift + permutation. Absorbed by linear models.
+
+    Phase-1 utility ceiling among *named-hiding* maps: no nonlinear warp.
+    Rank and known-pair attacks remain trivial — that is measured, not assumed.
+    """
+
+    name = "secret_affine"
+    family = "typed"
+
+    def __init__(self, seed: int = 0, transform_target: bool = True) -> None:
+        super().__init__(seed)
+        self.transform_target = transform_target
+        self.scales: np.ndarray | None = None
+        self.shifts: np.ndarray | None = None
+        self.perm: np.ndarray | None = None
+
+    def fit(self, table: RawTable, train_idx: np.ndarray) -> "SecretAffineTransform":
+        X = self._fit_public_encoder(table, train_idx)
+        self._init_target(table, train_idx, self.transform_target)
+        d = X.shape[1]
+        self.scales = self.rng.uniform(0.4, 3.5, size=d) * self.rng.choice([-1.0, 1.0], size=d)
+        self.shifts = self.rng.normal(0.0, 2.0, size=d)
+        self.perm = self.rng.permutation(d)
+        self.out_dim = d
+        self.notes = {
+            "invertible": True,
+            "preserves": ["linear_span", "rank_order", "tree_splits"],
+            "destroys": ["units", "column_order", "signed_orientation"],
+        }
+        return self
+
+    def transform_X(self, frame: pd.DataFrame) -> np.ndarray:
+        assert self.scales is not None and self.shifts is not None and self.perm is not None
+        X = self.encoder.transform(frame)
+        return (X * self.scales + self.shifts)[:, self.perm]
+
+
+class StdRotTransform(BaseTransform):
+    """Standardize then secret-rotate. Linear-friendly mixing without quantile warp."""
+
+    name = "std_rot"
+    family = "classical"
+
+    def __init__(self, seed: int = 0, transform_target: bool = True) -> None:
+        super().__init__(seed)
+        self.transform_target = transform_target
+        self.mean: np.ndarray | None = None
+        self.std: np.ndarray | None = None
+        self.R: np.ndarray | None = None
+
+    def fit(self, table: RawTable, train_idx: np.ndarray) -> "StdRotTransform":
+        X = self._fit_public_encoder(table, train_idx)
+        self._init_target(table, train_idx, self.transform_target)
+        self.mean = X.mean(axis=0)
+        self.std = X.std(axis=0) + 1e-8
+        self.R = _random_orthogonal(X.shape[1], self.rng)
+        self.out_dim = X.shape[1]
+        self.notes = {
+            "invertible": True,
+            "preserves": ["linear_span", "second_order_geometry"],
+            "destroys": ["column_identity", "axis_aligned_splits"],
+        }
+        return self
+
+    def transform_X(self, frame: pd.DataFrame) -> np.ndarray:
+        assert self.mean is not None and self.std is not None and self.R is not None
+        return ((self.encoder.transform(frame) - self.mean) / self.std) @ self.R
+
+
 class GaussTransform(BaseTransform):
     """Per-column quantile Gaussianization. Hides units/marginals, keeps rank."""
 
@@ -613,6 +683,8 @@ class NoisyGaussRotTransform(BaseTransform):
 def build_transform(name: str, seed: int) -> BaseTransform:
     catalog = {
         "identity": lambda: IdentityTransform(seed),
+        "secret_affine": lambda: SecretAffineTransform(seed),
+        "std_rot": lambda: StdRotTransform(seed),
         "gauss": lambda: GaussTransform(seed),
         "gauss_white_rot": lambda: GaussWhiteRotTransform(seed),
         "keyed_monotone": lambda: KeyedMonotoneTransform(seed),
@@ -634,6 +706,8 @@ def build_transform(name: str, seed: int) -> BaseTransform:
 
 CANDIDATE_TRANSFORMS = [
     "identity",
+    "secret_affine",
+    "std_rot",
     "gauss",
     "gauss_white_rot",
     "keyed_monotone",
