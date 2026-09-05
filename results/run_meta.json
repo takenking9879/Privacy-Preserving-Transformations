@@ -1,0 +1,49 @@
+{
+  "quick": false,
+  "seeds": [
+    0,
+    1
+  ],
+  "methods": [
+    "identity",
+    "secret_affine",
+    "std_rot",
+    "gauss",
+    "gauss_white_rot",
+    "keyed_monotone",
+    "typed_keyed",
+    "bn_adv",
+    "bn_noisy",
+    "vib",
+    "vib_stoch",
+    "rff",
+    "microagg_rot",
+    "noisy_gauss_rot"
+  ],
+  "models": [
+    "linear",
+    "hgb",
+    "mlp",
+    "knn"
+  ],
+  "datasets": [
+    {
+      "name": "california_housing",
+      "task": "regression",
+      "n": 6000,
+      "d": 8
+    },
+    {
+      "name": "banking_mixed_reg",
+      "task": "regression",
+      "n": 4500,
+      "d": 15
+    },
+    {
+      "name": "banking_mixed_clf",
+      "task": "classification",
+      "n": 4500,
+      "d": 15
+    }
+  ]
+}
