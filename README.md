@@ -22,7 +22,7 @@ attack, not as an afterthought.
 | `src/attacks.py` | Attacker A (known-pair) and Attacker B (black-box) |
 | `src/experiment.py` | Shared splits, utility, both attackers, Pareto selection |
 | `RESEARCH.md` | Literature and why families were kept or rejected |
-| `REPORT.md` | Full deliverable (generated after `python run.py`) |
+| `REPORT.md` | Full 11-part deliverable (hand-written; not overwritten by `run.py`) |
 | `tests/` | Permanent regression tests |
 
 ## Protocol
@@ -31,7 +31,7 @@ attack, not as an afterthought.
 pip install -r requirements.txt
 python -m pytest tests/ -q
 python run.py --quick    # smoke
-python run.py            # full grid (2 seeds, 3 datasets, 12 transforms, 4 models)
+python run.py            # full grid (2 seeds, 3 datasets, 14 transforms, 4 models)
 ```
 
 Priority used for selection:
@@ -55,3 +55,8 @@ owner holds schema, keys, g
 trainer sees  (Z with ids c000…, y_tilde)
 owner returns g^{-1}(M(Z_new))
 ```
+
+Default map when the owner cannot train a local encoder: **`typed_keyed`**.
+If labelled data can stay on-prem for an encoder fit: **`vib`**.
+Neither resists known-pair recovery of the attributes that cause `y`.
+See [`REPORT.md`](REPORT.md).

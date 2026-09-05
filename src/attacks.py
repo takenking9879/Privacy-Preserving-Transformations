@@ -275,20 +275,26 @@ def _semantic_guess(col: np.ndarray, context: str) -> list[dict]:
     sk = float(0 if np.std(col) < 1e-12 else ((col - col.mean()) ** 3).mean() / (col.std() ** 3 + 1e-12))
     lo, hi = float(np.min(col)), float(np.max(col))
     integerish = float(np.mean(np.abs(col - np.round(col)) < 1e-6))
-    if unique_frac > 0.92:
+    # Unique continuous floats are not identifiers; IDs are discrete and nearly unique.
+    if unique_frac > 0.92 and integerish > 0.85:
         guesses.append({"label": "identifier", "score": unique_frac})
-    if nuniq <= 2:
-        guesses.append({"label": "gender_or_binary_flag", "score": 0.6})
-    if 15 <= lo and hi <= 100 and integerish > 0.8:
-        guesses.append({"label": "age", "score": 0.7})
-    if 250 <= lo and hi <= 900 and nuniq > 20:
-        guesses.append({"label": "credit_score", "score": 0.55})
+    if nuniq <= 2 and integerish > 0.8:
+        guesses.append({"label": "gender_or_binary_flag", "score": 0.65})
+    elif 2 < nuniq <= 8 and integerish > 0.8:
+        guesses.append({"label": "low_card_category", "score": 0.55})
+    if 15 <= lo and hi <= 100 and integerish > 0.8 and 30 < nuniq < 90:
+        guesses.append({"label": "age", "score": 0.75})
+    if 250 <= lo and hi <= 900 and nuniq > 20 and integerish > 0.5:
+        guesses.append({"label": "credit_score", "score": 0.6})
     if 0 <= lo and hi <= 2 and nuniq > 10:
         guesses.append({"label": "rate_or_utilization", "score": 0.5})
-    if sk > 0.8 and lo >= 0:
+    if sk > 0.8 and lo >= 0 and unique_frac < 0.98:
         guesses.append({"label": "money_or_income", "score": min(0.85, 0.4 + 0.2 * sk)})
-    if "bank" in context.lower() and sk > 0.5 and lo >= 0:
-        guesses.append({"label": "bank_amount", "score": 0.45})
+    if "bank" in context.lower() and sk > 0.5 and lo >= 0 and integerish < 0.5:
+        guesses.append({"label": "bank_amount", "score": 0.5})
+    if "housing" in context.lower() or "census" in context.lower():
+        if sk > 0.4 and lo >= 0:
+            guesses.append({"label": "census_amount", "score": 0.4})
     if not guesses:
         guesses.append({"label": "unknown_continuous" if nuniq > 12 else "unknown_categorical", "score": 0.2})
     guesses.sort(key=lambda g: -g["score"])

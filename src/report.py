@@ -258,7 +258,7 @@ def write_report(df: pd.DataFrame, raw_records: list[dict], results_dir: Path) -
         "```",
         "",
     ]
-    (results_dir.parent / "REPORT.md").write_text("\n".join(lines))
+    (results_dir / "GENERATED_REPORT.md").write_text("\n".join(lines))
 
 
 def _hgb_fallback(hgb: pd.DataFrame) -> str:

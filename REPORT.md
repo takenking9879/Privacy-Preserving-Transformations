@@ -1,431 +1,348 @@
 # Utility-Preserving Privacy Transformations
 
-This report is generated from the experimental protocol in `src/experiment.py`.
-It is **not** a cryptographic security claim.
+**Status:** experimental study, not a cryptographic claim.
+**Priority:** maximum practical privacy subject to minimal predictive utility loss.
+**Protocol:** `python run.py` (2 seeds, 3 datasets, 14 transforms, 4 model families).
+
+`main` had no implementation. A prior branch evaluated numeric-only
+`Z = Q(W(G(X)))PR` and a deterministic bottleneck with one tree model.
+This study treats those maps as the **current** baseline, then asks whether
+anything stronger exists for heterogeneous tables, multiple model families,
+and prediction remapping.
+
+---
 
 ## 1. Current transformation analysis
 
-The repository originally shipped no implementation on `main`. A prior branch
-(`cursor/privacy-preserving-ml-transforms-6ed8`) studied numeric-only maps
-`Z = Q(W(G(X))) P R` and a supervised bottleneck, evaluated only with
-`HistGradientBoostingRegressor`. That work is treated as the **current**
-baseline family (`gauss`, `gauss_white_rot`, `bn_adv`) and is re-run here
-against heterogeneous tables and multiple model families.
+### What the trainer is allowed to see
 
-### What the classical maps preserve / destroy
+Every non-identity transform sends only:
 
-- **`gauss`**: preserves within-column rank and tree splits; destroys units,
-  scale, and marginal shape. Invertible via the quantile map for numeric
-  columns. Predictions map back because the target affine `g` is inverted.
-- **`gauss_white_rot`**: preserves second-order geometry up to a secret
-  rotation; destroys column identity and axis-aligned structure. Fully
-  invertible given the key; statistically identifiable from `O(d)` pairs.
-- **`keyed_monotone` / `typed_keyed`**: preserve per-column order and
-  categorical equality; destroy names, string literals (HMAC buckets), and
-  original codes. Partially invertible. Tree utility stays high.
-- **`bn_adv` / `vib`**: preserve `I(Z;Y)` by local training; destroy features
-  orthogonal to `Y` and column identity. Not invertible. Known-pair attackers
-  still recover the *predictive* raw attributes.
-- **`rff` / `microagg_rot` / `noisy_gauss_rot`**: lossy / nonlinear; lower
-  leakage, usually lower utility.
+- a numeric matrix `Z` with anonymous column ids `c000…`
+- a target `ỹ = g(y)` where `g` is an invertible secret affine map
+  (regression) or label permutation (classification)
+
+Predictions are scored after `ŷ = g^{-1}(M(Z))`. Column names, types, and
+schema never leave the owner.
+
+### Properties preserved vs destroyed
+
+Measured on `banking_mixed_reg` (seed 0). Distance = pairwise Euclidean
+correlation between `X` and `Z`. Rank = mean best |Spearman| of each `X`
+column against any `Z` column.
+
+| Transform | Distance | Rank match | Off-diag corr in Z | Invertible? | Preserves | Destroys |
+| --- | --- | --- | --- | --- | --- | --- |
+| `identity` | 1.00 | 1.00 | raw | yes | everything | nothing |
+| `secret_affine` | 1.00 | 1.00 | same as raw | yes | linear span, order, tree splits | units, names, sign |
+| `gauss` / `typed_keyed` | 0.10 | 1.00 | similar | partial | within-column order, cat equality | scale, units, string literals (HMAC) |
+| `std_rot` / `gauss_white_rot` | 0.37 | 0.51 | ≈ 0 (whitened) | yes (key) | 2nd-order geometry | column identity, axis-aligned splits |
+| `bn_adv` | 0.16 | 0.57 | 0.63 | no | I(Z;Y) | features ⊥ Y, names |
+| `vib` | 0.07 | 0.33 | 0.81 | no | I(Z;Y) up to β | fine-grained X |
+| `rff` | 0.20 | 0.50 | low | no | approximate kernel geometry | original coordinates |
+| `microagg_rot` | 0.19 | 0.39 | mixed | no | coarse neighborhoods | within-cluster identity |
+
+**Relationships / correlations.** Secret affine and per-column monotone maps
+keep pairwise comonotonicity (rank = 1). Rotations keep a rotated covariance
+but destroy the original correlation *pattern in the named basis*.
+Bottlenecks / VIB destroy most pairwise X-structure and keep a low-dimensional
+predictive subspace.
+
+**Distributions.** Gaussianization and typed keyed maps remove skew and units.
+Identity and secret affine leave skew intact (only scale/shift).
+
+**Sparsity.** None of the maps are designed to preserve exact zeros; dummy
+columns in `keyed_monotone` add dense structured noise.
+
+**Categoricals / strings.** `typed_keyed` is the only map that treats types
+honestly: keyed permutations for cats, HMAC buckets for strings (many-to-one).
+Public encoding of strings is a non-secret hash and is **not** privacy.
+
+**Model-class effect.** Trees barely notice monotone maps (HGB retention ≈ 1.00).
+Rotations cost 5–12% HGB retention. Linear models absorb `secret_affine` and
+`std_rot` exactly (retention 1.00) and slightly *gain* on VIB/bottleneck
+representations (retention ≈ 1.07) because the local encoder is already a
+supervised projection.
+
+**Prediction remapping.** Affine `g` is free for every model family tested:
+training on `g(y)` and inverting is equivalent to training on `y` up to
+numerical error. This hides target units from the trainer without utility loss.
+
+---
 
 ## 2. Weaknesses found
 
-1. **Known-pair inversion is the binding constraint.** Any deterministic
-   invertible stage (especially secret rotations) collapses once the attacker
-   holds on the order of `d` matched rows.
-2. **Utility-preserving maps must keep `I(Z; X_predictive)`.** Features that
-   cause `Y` remain the leaky ones under Attacker A, even when values look random.
-3. **Tree vs linear disagreement.** Rotations hurt axis-aligned trees while
-   leaving linear/MLP models closer to raw performance — a model-class effect,
-   not information destruction.
-4. **Leaving `Y` in the clear is a leak.** This protocol always applies an
-   invertible target map `g` except for `identity`. Utility is scored after `g^{-1}`.
-5. **Column-wise monotone maps hide names but not order.** Rank attacks recover
-   numeric features from few pairs.
+1. **Known-pair inversion is the binding constraint.** `secret_affine`,
+   `identity`, and `std_rot` reach ridge reconstruction R² ≥ 0.9 by 10–25
+   pairs. `gauss_white_rot` does the same by 25 pairs on the banking tables
+   (d ≈ 15). Extra dimensions do not make a keyed linear map one-way.
+2. **Worst-attribute leakage hides inside “resistant” global scores.**
+   `vib` / `bn_adv` never reach global reconstruction R² = 0.5 within 200
+   pairs, but the attributes that cause `y` recover to worst-attribute
+   R² ≈ 0.88–0.93 on the banking tables from 2–10 pairs. Mean reconstruction
+   is the wrong headline.
+3. **Utility-preserving ⇒ I(Z; X_predictive) stays large.** This is
+   information-theoretic, not an implementation bug. Stochastic VIB
+   (`vib_stoch`) is the only increment that lowers that leakage (mean
+   worst-attribute 0.76 vs 0.83) and it drops California HGB retention to 0.895.
+4. **Rank attacks beat linear inversion on monotone maps.** `typed_keyed`
+   needs ~50–100 pairs for global R² = 0.5, but worst-attribute R² is already
+   0.98 at 5 pairs via Spearman matching.
+5. **Microaggregation does not cap the worst attribute.** Cluster centroids
+   still leak extreme / well-separated features (worst-attribute ≈ 1.0) while
+   destroying utility (HGB retention 0.16 on banking regression).
+6. **Leaving `y` in the clear is a leak.** The prior branch did this. The
+   present protocol always applies `g` except for `identity`.
+7. **Attacker B on raw encodings is not helpless.** On the banking table it
+   flags age, gender, utilization-like rates, and money-like skew
+   (semantic hit 0.20, kind 0.73, sensitive-column hit 0.89) from `Z = X`
+   plus the sentence *“This dataset comes from a bank…”*.
+
+---
 
 ## 3. Candidate alternative transformations
 
-Implemented and benchmarked: `identity`, `gauss`, `gauss_white_rot`,
-`keyed_monotone`, `typed_keyed`, `bn_adv`, `bn_noisy`, `vib`, `vib_stoch`,
-`rff`, `microagg_rot`, `noisy_gauss_rot`.
+Implemented and measured (not just discussed):
 
-Literature that informed the grid (see `RESEARCH.md`): variational information
-bottleneck / privacy funnel; random Fourier features; microaggregation;
-adversarial representation learning; typed masking / FPE-style hashing.
-Synthetic-data and DP-SGD methods were considered and rejected as the primary
-mechanism because they do not implement `X_raw → X_transformed` with
-row-aligned outsourced training.
+| Name | Family | Local `y` required? |
+| --- | --- | --- |
+| `identity` | baseline | no |
+| `secret_affine` | typed / linear-friendly | no |
+| `std_rot` | classical | no |
+| `gauss` | classical (prior) | no |
+| `gauss_white_rot` | classical (prior) | no |
+| `keyed_monotone` | typed | no |
+| `typed_keyed` | typed / heterogeneous | no |
+| `bn_adv` | learned (prior) | yes |
+| `bn_noisy` | learned | yes |
+| `vib` | learned (VIB) | yes |
+| `vib_stoch` | learned | yes |
+| `rff` | nonlinear | no |
+| `microagg_rot` | lossy | no |
+| `noisy_gauss_rot` | classical + noise | no |
+
+Rejected as the *primary* mechanism (see `RESEARCH.md`): FPE/AES, OPE,
+DP-SGD, synthetic diffusion, HE/MPC, reconstructive VAEs. They do not
+implement row-aligned `X → Z` training with `g^{-1}` predictions.
+
+Further increments past `vib` (`vib_stoch`, heavier noise, microagg, RFF)
+were measured. Gains in leakage are real and **conflict with the 90%
+all-dataset utility floor**. Additional search in this family is marginal.
+
+---
 
 ## 4. Utility benchmark
 
-Models: ridge/logistic (`linear`), `HistGradientBoosting` (`hgb`), MLP, k-NN.
-Metric: regression `R²`, classification accuracy, both after mapping predictions
-back to the original target space. Retention is transformed_score / raw_score.
+HGB score retention (transformed / raw), mean of 2 seeds. Regression uses
+R²; classification uses accuracy. All scores are after `g^{-1}`.
 
-| dataset | method | model | score_mean | retention_mean | agreement_mean | worst_attr_r2_mean | recon_r2_mean | semantic_acc_mean | membership_auc_mean | n_pairs_r2_0.5_mean | known_pair_robustness |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| california_housing | identity | linear | -336.897 | 1.000 | 1.000 | 1.000 | 0.994 | 0.000 | 0.501 | 25.000 | collapses_with_enough_pairs |
-| california_housing | identity | hgb | 0.811 | 1.000 | 1.000 | 1.000 | 0.994 | 0.000 | 0.501 | 25.000 | collapses_with_enough_pairs |
-| california_housing | identity | mlp | -50.470 | 1.000 | 1.000 | 1.000 | 0.994 | 0.000 | 0.501 | 25.000 | collapses_with_enough_pairs |
-| california_housing | identity | knn | 0.747 | 1.000 | 1.000 | 1.000 | 0.994 | 0.000 | 0.501 | 25.000 | collapses_with_enough_pairs |
-| california_housing | gauss | linear | 0.647 | -0.002 | 0.012 | 0.912 | 0.584 | 0.000 | 0.526 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss | hgb | 0.811 | 1.000 | 1.000 | 0.912 | 0.584 | 0.000 | 0.526 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss | mlp | 0.701 | -0.014 | 0.166 | 0.912 | 0.584 | 0.000 | 0.526 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss | knn | 0.713 | 0.954 | 0.918 | 0.912 | 0.584 | 0.000 | 0.526 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss_white_rot | linear | 0.647 | -0.002 | 0.012 | 0.912 | 0.584 | 0.000 | 0.530 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss_white_rot | hgb | 0.776 | 0.956 | 0.931 | 0.912 | 0.584 | 0.000 | 0.530 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss_white_rot | mlp | 0.698 | -0.014 | 0.158 | 0.912 | 0.584 | 0.000 | 0.530 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss_white_rot | knn | 0.713 | 0.954 | 0.900 | 0.912 | 0.584 | 0.000 | 0.530 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | keyed_monotone | linear | 0.659 | -0.002 | -0.013 | 0.996 | 0.599 | — | 0.502 | 25.000 | partial_recovery_with_enough_pairs |
-| california_housing | keyed_monotone | hgb | 0.807 | 0.995 | 0.993 | 0.996 | 0.599 | — | 0.502 | 25.000 | partial_recovery_with_enough_pairs |
-| california_housing | keyed_monotone | mlp | 0.729 | -0.014 | 0.206 | 0.996 | 0.599 | — | 0.502 | 25.000 | partial_recovery_with_enough_pairs |
-| california_housing | keyed_monotone | knn | 0.698 | 0.935 | 0.914 | 0.996 | 0.599 | — | 0.502 | 25.000 | partial_recovery_with_enough_pairs |
-| california_housing | typed_keyed | linear | 0.647 | -0.002 | 0.012 | 0.912 | 0.584 | 0.000 | 0.526 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | typed_keyed | hgb | 0.811 | 1.000 | 1.000 | 0.912 | 0.584 | 0.000 | 0.526 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | typed_keyed | mlp | 0.700 | -0.014 | 0.161 | 0.912 | 0.584 | 0.000 | 0.526 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | typed_keyed | knn | 0.713 | 0.954 | 0.918 | 0.912 | 0.584 | 0.000 | 0.526 | 10.000 | partial_recovery_with_enough_pairs |
-| california_housing | bn_adv | linear | -31.138 | 0.092 | -0.977 | 0.145 | -135.328 | — | 0.510 | — | resistant_in_tested_budget |
-| california_housing | bn_adv | hgb | 0.730 | 0.900 | 0.948 | 0.145 | -135.328 | — | 0.510 | — | resistant_in_tested_budget |
-| california_housing | bn_adv | mlp | -72.771 | 1.442 | 1.000 | 0.145 | -135.328 | — | 0.510 | — | resistant_in_tested_budget |
-| california_housing | bn_adv | knn | 0.784 | 1.050 | 0.929 | 0.145 | -135.328 | — | 0.510 | — | resistant_in_tested_budget |
-| california_housing | vib | linear | -12.781 | 0.038 | -0.956 | -0.016 | -623.204 | — | 0.500 | — | resistant_in_tested_budget |
-| california_housing | vib | hgb | 0.762 | 0.939 | 0.944 | -0.016 | -623.204 | — | 0.500 | — | resistant_in_tested_budget |
-| california_housing | vib | mlp | -38.787 | 0.769 | 0.999 | -0.016 | -623.204 | — | 0.500 | — | resistant_in_tested_budget |
-| california_housing | vib | knn | 0.729 | 0.977 | 0.914 | -0.016 | -623.204 | — | 0.500 | — | resistant_in_tested_budget |
-| california_housing | rff | linear | 0.348 | -0.001 | 0.055 | 0.923 | 0.495 | — | 0.515 | — | resistant_in_tested_budget |
-| california_housing | rff | hgb | 0.605 | 0.746 | 0.832 | 0.923 | 0.495 | — | 0.515 | — | resistant_in_tested_budget |
-| california_housing | rff | mlp | 0.606 | -0.012 | 0.084 | 0.923 | 0.495 | — | 0.515 | — | resistant_in_tested_budget |
-| california_housing | rff | knn | 0.537 | 0.719 | 0.838 | 0.923 | 0.495 | — | 0.515 | — | resistant_in_tested_budget |
-| banking_mixed_reg | identity | linear | 0.879 | 1.000 | 1.000 | 1.000 | 0.996 | 0.467 | 0.530 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | identity | hgb | 0.919 | 1.000 | 1.000 | 1.000 | 0.996 | 0.467 | 0.530 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | identity | mlp | -3.346 | 1.000 | 1.000 | 1.000 | 0.996 | 0.467 | 0.530 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | identity | knn | 0.723 | 1.000 | 1.000 | 1.000 | 0.996 | 0.467 | 0.530 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | gauss | linear | 0.852 | 0.969 | 0.991 | 1.000 | 0.872 | 0.133 | 0.560 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss | hgb | 0.919 | 1.000 | 1.000 | 1.000 | 0.872 | 0.133 | 0.560 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss | mlp | -3.641 | 1.088 | 0.938 | 1.000 | 0.872 | 0.133 | 0.560 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss | knn | 0.688 | 0.951 | 0.939 | 1.000 | 0.872 | 0.133 | 0.560 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss_white_rot | linear | 0.852 | 0.969 | 0.991 | 1.000 | 0.872 | 0.067 | 0.545 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss_white_rot | hgb | 0.803 | 0.873 | 0.935 | 1.000 | 0.872 | 0.067 | 0.545 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss_white_rot | mlp | -3.689 | 1.102 | 0.766 | 1.000 | 0.872 | 0.067 | 0.545 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss_white_rot | knn | 0.643 | 0.889 | 0.896 | 1.000 | 0.872 | 0.067 | 0.545 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | keyed_monotone | linear | 0.911 | 1.036 | 0.987 | 1.000 | 0.927 | — | 0.517 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | keyed_monotone | hgb | 0.917 | 0.997 | 0.997 | 1.000 | 0.927 | — | 0.517 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | keyed_monotone | mlp | -3.546 | 1.060 | 0.904 | 1.000 | 0.927 | — | 0.517 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | keyed_monotone | knn | 0.713 | 0.985 | 0.932 | 1.000 | 0.927 | — | 0.517 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | typed_keyed | linear | 0.851 | 0.968 | 0.991 | 1.000 | 0.636 | 0.000 | 0.515 | 50.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | typed_keyed | hgb | 0.921 | 1.001 | 0.997 | 1.000 | 0.636 | 0.000 | 0.515 | 50.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | typed_keyed | mlp | -3.630 | 1.085 | 0.911 | 1.000 | 0.636 | 0.000 | 0.515 | 50.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | typed_keyed | knn | 0.699 | 0.966 | 0.921 | 1.000 | 0.636 | 0.000 | 0.515 | 50.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | bn_adv | linear | 0.904 | 1.029 | 0.976 | 0.915 | 0.282 | — | 0.541 | — | resistant_in_tested_budget |
-| banking_mixed_reg | bn_adv | hgb | 0.899 | 0.978 | 0.973 | 0.915 | 0.282 | — | 0.541 | — | resistant_in_tested_budget |
-| banking_mixed_reg | bn_adv | mlp | -3.235 | 0.967 | 0.680 | 0.915 | 0.282 | — | 0.541 | — | resistant_in_tested_budget |
-| banking_mixed_reg | bn_adv | knn | 0.905 | 1.251 | 0.919 | 0.915 | 0.282 | — | 0.541 | — | resistant_in_tested_budget |
-| banking_mixed_reg | vib | linear | 0.901 | 1.025 | 0.978 | 0.916 | 0.385 | — | 0.540 | — | resistant_in_tested_budget |
-| banking_mixed_reg | vib | hgb | 0.907 | 0.986 | 0.975 | 0.916 | 0.385 | — | 0.540 | — | resistant_in_tested_budget |
-| banking_mixed_reg | vib | mlp | -3.362 | 1.005 | 0.585 | 0.916 | 0.385 | — | 0.540 | — | resistant_in_tested_budget |
-| banking_mixed_reg | vib | knn | 0.914 | 1.264 | 0.925 | 0.916 | 0.385 | — | 0.540 | — | resistant_in_tested_budget |
-| banking_mixed_reg | rff | linear | 0.565 | 0.643 | 0.786 | 0.606 | 0.458 | — | 0.515 | — | resistant_in_tested_budget |
-| banking_mixed_reg | rff | hgb | 0.564 | 0.613 | 0.783 | 0.606 | 0.458 | — | 0.515 | — | resistant_in_tested_budget |
-| banking_mixed_reg | rff | mlp | -3.449 | 1.031 | 0.627 | 0.606 | 0.458 | — | 0.515 | — | resistant_in_tested_budget |
-| banking_mixed_reg | rff | knn | 0.505 | 0.699 | 0.777 | 0.606 | 0.458 | — | 0.515 | — | resistant_in_tested_budget |
-| banking_mixed_clf | identity | linear | 0.915 | 1.000 | 1.000 | 1.000 | 0.996 | 0.467 | 0.511 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | identity | hgb | 0.911 | 1.000 | 1.000 | 1.000 | 0.996 | 0.467 | 0.511 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | identity | mlp | 0.878 | 1.000 | 1.000 | 1.000 | 0.996 | 0.467 | 0.511 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | identity | knn | 0.848 | 1.000 | 1.000 | 1.000 | 0.996 | 0.467 | 0.511 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | gauss | linear | 0.915 | 1.000 | 0.985 | 1.000 | 0.866 | 0.133 | 0.506 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss | hgb | 0.911 | 1.000 | 1.000 | 1.000 | 0.866 | 0.133 | 0.506 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss | mlp | 0.885 | 1.008 | 0.948 | 1.000 | 0.866 | 0.133 | 0.506 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss | knn | 0.815 | 0.961 | 0.922 | 1.000 | 0.866 | 0.133 | 0.506 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss_white_rot | linear | 0.922 | 1.008 | 0.985 | 1.000 | 0.866 | 0.067 | 0.509 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss_white_rot | hgb | 0.837 | 0.919 | 0.896 | 1.000 | 0.866 | 0.067 | 0.509 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss_white_rot | mlp | 0.889 | 1.013 | 0.937 | 1.000 | 0.866 | 0.067 | 0.509 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss_white_rot | knn | 0.789 | 0.930 | 0.881 | 1.000 | 0.866 | 0.067 | 0.509 | 25.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | keyed_monotone | linear | 0.919 | 1.004 | 0.989 | 1.000 | 0.944 | — | 0.541 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | keyed_monotone | hgb | 0.900 | 0.988 | 0.974 | 1.000 | 0.944 | — | 0.541 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | keyed_monotone | mlp | 0.822 | 0.937 | 0.900 | 1.000 | 0.944 | — | 0.541 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | keyed_monotone | knn | 0.822 | 0.969 | 0.900 | 1.000 | 0.944 | — | 0.541 | 25.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | typed_keyed | linear | 0.904 | 0.988 | 0.981 | 1.000 | 0.611 | 0.000 | 0.517 | 100.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | typed_keyed | hgb | 0.896 | 0.984 | 0.978 | 1.000 | 0.611 | 0.000 | 0.517 | 100.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | typed_keyed | mlp | 0.900 | 1.025 | 0.948 | 1.000 | 0.611 | 0.000 | 0.517 | 100.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | typed_keyed | knn | 0.830 | 0.978 | 0.907 | 1.000 | 0.611 | 0.000 | 0.517 | 100.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | bn_adv | linear | 0.885 | 0.968 | 0.963 | 0.914 | 0.257 | — | 0.507 | — | resistant_in_tested_budget |
-| banking_mixed_clf | bn_adv | hgb | 0.885 | 0.972 | 0.944 | 0.914 | 0.257 | — | 0.507 | — | resistant_in_tested_budget |
-| banking_mixed_clf | bn_adv | mlp | 0.904 | 1.030 | 0.930 | 0.914 | 0.257 | — | 0.507 | — | resistant_in_tested_budget |
-| banking_mixed_clf | bn_adv | knn | 0.896 | 1.057 | 0.900 | 0.914 | 0.257 | — | 0.507 | — | resistant_in_tested_budget |
-| banking_mixed_clf | vib | linear | 0.900 | 0.984 | 0.963 | 0.908 | 0.305 | — | 0.506 | — | resistant_in_tested_budget |
-| banking_mixed_clf | vib | hgb | 0.870 | 0.955 | 0.930 | 0.908 | 0.305 | — | 0.506 | — | resistant_in_tested_budget |
-| banking_mixed_clf | vib | mlp | 0.885 | 1.008 | 0.911 | 0.908 | 0.305 | — | 0.506 | — | resistant_in_tested_budget |
-| banking_mixed_clf | vib | knn | 0.889 | 1.048 | 0.900 | 0.908 | 0.305 | — | 0.506 | — | resistant_in_tested_budget |
-| banking_mixed_clf | rff | linear | 0.811 | 0.887 | 0.837 | 0.626 | 0.342 | — | 0.507 | — | resistant_in_tested_budget |
-| banking_mixed_clf | rff | hgb | 0.785 | 0.862 | 0.830 | 0.626 | 0.342 | — | 0.507 | — | resistant_in_tested_budget |
-| banking_mixed_clf | rff | mlp | 0.770 | 0.878 | 0.826 | 0.626 | 0.342 | — | 0.507 | — | resistant_in_tested_budget |
-| banking_mixed_clf | rff | knn | 0.800 | 0.943 | 0.848 | 0.626 | 0.342 | — | 0.507 | — | resistant_in_tested_budget |
-
-
-## 5. Attacker A results
-
-Known-pair grid: 1, 2, 5, 10, 25, 50, 100, 200. Attacks: ridge, pinv,
-rank/order matching, categorical frequency, HGB inversion, MLP inversion.
-
-| dataset | method | recon_r2_mean | worst_attr_r2_mean | sensitive_attr_r2_mean | n_pairs_r2_0.5_mean | spearman_leak_mean | known_pair_robustness |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| california_housing | identity | 0.994 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| california_housing | identity | 0.994 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| california_housing | identity | 0.994 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| california_housing | identity | 0.994 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| california_housing | gauss | 0.584 | 0.912 | 0.912 | 10.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss | 0.584 | 0.912 | 0.912 | 10.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss | 0.584 | 0.912 | 0.912 | 10.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss | 0.584 | 0.912 | 0.912 | 10.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | gauss_white_rot | 0.584 | 0.912 | 0.912 | 10.000 | 0.774 | partial_recovery_with_enough_pairs |
-| california_housing | gauss_white_rot | 0.584 | 0.912 | 0.912 | 10.000 | 0.774 | partial_recovery_with_enough_pairs |
-| california_housing | gauss_white_rot | 0.584 | 0.912 | 0.912 | 10.000 | 0.774 | partial_recovery_with_enough_pairs |
-| california_housing | gauss_white_rot | 0.584 | 0.912 | 0.912 | 10.000 | 0.774 | partial_recovery_with_enough_pairs |
-| california_housing | keyed_monotone | 0.599 | 0.996 | 0.946 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | keyed_monotone | 0.599 | 0.996 | 0.946 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | keyed_monotone | 0.599 | 0.996 | 0.946 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | keyed_monotone | 0.599 | 0.996 | 0.946 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | typed_keyed | 0.584 | 0.912 | 0.912 | 10.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | typed_keyed | 0.584 | 0.912 | 0.912 | 10.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | typed_keyed | 0.584 | 0.912 | 0.912 | 10.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | typed_keyed | 0.584 | 0.912 | 0.912 | 10.000 | 1.000 | partial_recovery_with_enough_pairs |
-| california_housing | bn_adv | -135.328 | 0.145 | -40.832 | — | 0.840 | resistant_in_tested_budget |
-| california_housing | bn_adv | -135.328 | 0.145 | -40.832 | — | 0.840 | resistant_in_tested_budget |
-| california_housing | bn_adv | -135.328 | 0.145 | -40.832 | — | 0.840 | resistant_in_tested_budget |
-| california_housing | bn_adv | -135.328 | 0.145 | -40.832 | — | 0.840 | resistant_in_tested_budget |
-| california_housing | vib | -623.204 | -0.016 | -2.587 | — | 0.815 | resistant_in_tested_budget |
-| california_housing | vib | -623.204 | -0.016 | -2.587 | — | 0.815 | resistant_in_tested_budget |
-| california_housing | vib | -623.204 | -0.016 | -2.587 | — | 0.815 | resistant_in_tested_budget |
-| california_housing | vib | -623.204 | -0.016 | -2.587 | — | 0.815 | resistant_in_tested_budget |
-| california_housing | rff | 0.495 | 0.923 | 0.923 | — | 0.829 | resistant_in_tested_budget |
-| california_housing | rff | 0.495 | 0.923 | 0.923 | — | 0.829 | resistant_in_tested_budget |
-| california_housing | rff | 0.495 | 0.923 | 0.923 | — | 0.829 | resistant_in_tested_budget |
-| california_housing | rff | 0.495 | 0.923 | 0.923 | — | 0.829 | resistant_in_tested_budget |
-| banking_mixed_reg | identity | 0.996 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | identity | 0.996 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | identity | 0.996 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | identity | 0.996 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | gauss | 0.872 | 1.000 | 1.000 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss | 0.872 | 1.000 | 1.000 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss | 0.872 | 1.000 | 1.000 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss | 0.872 | 1.000 | 1.000 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss_white_rot | 0.872 | 1.000 | 1.000 | 25.000 | 0.637 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss_white_rot | 0.872 | 1.000 | 1.000 | 25.000 | 0.637 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss_white_rot | 0.872 | 1.000 | 1.000 | 25.000 | 0.637 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | gauss_white_rot | 0.872 | 1.000 | 1.000 | 25.000 | 0.637 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | keyed_monotone | 0.927 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | keyed_monotone | 0.927 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | keyed_monotone | 0.927 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | keyed_monotone | 0.927 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_reg | typed_keyed | 0.636 | 1.000 | 1.000 | 50.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | typed_keyed | 0.636 | 1.000 | 1.000 | 50.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | typed_keyed | 0.636 | 1.000 | 1.000 | 50.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | typed_keyed | 0.636 | 1.000 | 1.000 | 50.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_reg | bn_adv | 0.282 | 0.915 | 0.915 | — | 0.953 | resistant_in_tested_budget |
-| banking_mixed_reg | bn_adv | 0.282 | 0.915 | 0.915 | — | 0.953 | resistant_in_tested_budget |
-| banking_mixed_reg | bn_adv | 0.282 | 0.915 | 0.915 | — | 0.953 | resistant_in_tested_budget |
-| banking_mixed_reg | bn_adv | 0.282 | 0.915 | 0.915 | — | 0.953 | resistant_in_tested_budget |
-| banking_mixed_reg | vib | 0.385 | 0.916 | 0.916 | — | 0.952 | resistant_in_tested_budget |
-| banking_mixed_reg | vib | 0.385 | 0.916 | 0.916 | — | 0.952 | resistant_in_tested_budget |
-| banking_mixed_reg | vib | 0.385 | 0.916 | 0.916 | — | 0.952 | resistant_in_tested_budget |
-| banking_mixed_reg | vib | 0.385 | 0.916 | 0.916 | — | 0.952 | resistant_in_tested_budget |
-| banking_mixed_reg | rff | 0.458 | 0.606 | 0.606 | — | 0.676 | resistant_in_tested_budget |
-| banking_mixed_reg | rff | 0.458 | 0.606 | 0.606 | — | 0.676 | resistant_in_tested_budget |
-| banking_mixed_reg | rff | 0.458 | 0.606 | 0.606 | — | 0.676 | resistant_in_tested_budget |
-| banking_mixed_reg | rff | 0.458 | 0.606 | 0.606 | — | 0.676 | resistant_in_tested_budget |
-| banking_mixed_clf | identity | 0.996 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | identity | 0.996 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | identity | 0.996 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | identity | 0.996 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | gauss | 0.866 | 1.000 | 1.000 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss | 0.866 | 1.000 | 1.000 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss | 0.866 | 1.000 | 1.000 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss | 0.866 | 1.000 | 1.000 | 25.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss_white_rot | 0.866 | 1.000 | 1.000 | 25.000 | 0.651 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss_white_rot | 0.866 | 1.000 | 1.000 | 25.000 | 0.651 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss_white_rot | 0.866 | 1.000 | 1.000 | 25.000 | 0.651 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | gauss_white_rot | 0.866 | 1.000 | 1.000 | 25.000 | 0.651 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | keyed_monotone | 0.944 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | keyed_monotone | 0.944 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | keyed_monotone | 0.944 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | keyed_monotone | 0.944 | 1.000 | 1.000 | 25.000 | 1.000 | collapses_with_enough_pairs |
-| banking_mixed_clf | typed_keyed | 0.611 | 1.000 | 1.000 | 100.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | typed_keyed | 0.611 | 1.000 | 1.000 | 100.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | typed_keyed | 0.611 | 1.000 | 1.000 | 100.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | typed_keyed | 0.611 | 1.000 | 1.000 | 100.000 | 1.000 | partial_recovery_with_enough_pairs |
-| banking_mixed_clf | bn_adv | 0.257 | 0.914 | 0.914 | — | 0.962 | resistant_in_tested_budget |
-| banking_mixed_clf | bn_adv | 0.257 | 0.914 | 0.914 | — | 0.962 | resistant_in_tested_budget |
-| banking_mixed_clf | bn_adv | 0.257 | 0.914 | 0.914 | — | 0.962 | resistant_in_tested_budget |
-| banking_mixed_clf | bn_adv | 0.257 | 0.914 | 0.914 | — | 0.962 | resistant_in_tested_budget |
-| banking_mixed_clf | vib | 0.305 | 0.908 | 0.908 | — | 0.942 | resistant_in_tested_budget |
-| banking_mixed_clf | vib | 0.305 | 0.908 | 0.908 | — | 0.942 | resistant_in_tested_budget |
-| banking_mixed_clf | vib | 0.305 | 0.908 | 0.908 | — | 0.942 | resistant_in_tested_budget |
-| banking_mixed_clf | vib | 0.305 | 0.908 | 0.908 | — | 0.942 | resistant_in_tested_budget |
-| banking_mixed_clf | rff | 0.342 | 0.626 | 0.558 | — | 0.641 | resistant_in_tested_budget |
-| banking_mixed_clf | rff | 0.342 | 0.626 | 0.558 | — | 0.641 | resistant_in_tested_budget |
-| banking_mixed_clf | rff | 0.342 | 0.626 | 0.558 | — | 0.641 | resistant_in_tested_budget |
-| banking_mixed_clf | rff | 0.342 | 0.626 | 0.558 | — | 0.641 | resistant_in_tested_budget |
-
-
-## 6. Attacker B results
-
-The attacker receives only `Z` and a context sentence
-(`This dataset comes from a bank...` or the housing description).
-No keys, schema, column names, or raw rows.
-
-| dataset | method | semantic_acc_mean | kind_acc_mean | membership_auc_mean | linkage_mean | sensitive_hit_mean |
+| Method | housing | bank-reg | bank-clf | mean | linear mean | all-ds ≥ 0.90? |
 | --- | --- | --- | --- | --- | --- | --- |
-| california_housing | identity | 0.000 | 1.000 | 0.501 | — | 0.000 |
-| california_housing | identity | 0.000 | 1.000 | 0.501 | — | 0.000 |
-| california_housing | identity | 0.000 | 1.000 | 0.501 | — | 0.000 |
-| california_housing | identity | 0.000 | 1.000 | 0.501 | — | 0.000 |
-| california_housing | gauss | 0.000 | 1.000 | 0.526 | — | 0.000 |
-| california_housing | gauss | 0.000 | 1.000 | 0.526 | — | 0.000 |
-| california_housing | gauss | 0.000 | 1.000 | 0.526 | — | 0.000 |
-| california_housing | gauss | 0.000 | 1.000 | 0.526 | — | 0.000 |
-| california_housing | gauss_white_rot | 0.000 | 1.000 | 0.530 | — | 0.667 |
-| california_housing | gauss_white_rot | 0.000 | 1.000 | 0.530 | — | 0.667 |
-| california_housing | gauss_white_rot | 0.000 | 1.000 | 0.530 | — | 0.667 |
-| california_housing | gauss_white_rot | 0.000 | 1.000 | 0.530 | — | 0.667 |
-| california_housing | keyed_monotone | — | — | 0.502 | — | — |
-| california_housing | keyed_monotone | — | — | 0.502 | — | — |
-| california_housing | keyed_monotone | — | — | 0.502 | — | — |
-| california_housing | keyed_monotone | — | — | 0.502 | — | — |
-| california_housing | typed_keyed | 0.000 | 1.000 | 0.526 | — | 0.333 |
-| california_housing | typed_keyed | 0.000 | 1.000 | 0.526 | — | 0.333 |
-| california_housing | typed_keyed | 0.000 | 1.000 | 0.526 | — | 0.333 |
-| california_housing | typed_keyed | 0.000 | 1.000 | 0.526 | — | 0.333 |
-| california_housing | bn_adv | — | — | 0.510 | — | — |
-| california_housing | bn_adv | — | — | 0.510 | — | — |
-| california_housing | bn_adv | — | — | 0.510 | — | — |
-| california_housing | bn_adv | — | — | 0.510 | — | — |
-| california_housing | vib | — | — | 0.500 | — | — |
-| california_housing | vib | — | — | 0.500 | — | — |
-| california_housing | vib | — | — | 0.500 | — | — |
-| california_housing | vib | — | — | 0.500 | — | — |
-| california_housing | rff | — | — | 0.515 | — | — |
-| california_housing | rff | — | — | 0.515 | — | — |
-| california_housing | rff | — | — | 0.515 | — | — |
-| california_housing | rff | — | — | 0.515 | — | — |
-| banking_mixed_reg | identity | 0.467 | 0.733 | 0.530 | — | 0.889 |
-| banking_mixed_reg | identity | 0.467 | 0.733 | 0.530 | — | 0.889 |
-| banking_mixed_reg | identity | 0.467 | 0.733 | 0.530 | — | 0.889 |
-| banking_mixed_reg | identity | 0.467 | 0.733 | 0.530 | — | 0.889 |
-| banking_mixed_reg | gauss | 0.133 | 0.733 | 0.560 | — | 0.889 |
-| banking_mixed_reg | gauss | 0.133 | 0.733 | 0.560 | — | 0.889 |
-| banking_mixed_reg | gauss | 0.133 | 0.733 | 0.560 | — | 0.889 |
-| banking_mixed_reg | gauss | 0.133 | 0.733 | 0.560 | — | 0.889 |
-| banking_mixed_reg | gauss_white_rot | 0.067 | 0.533 | 0.545 | — | 0.444 |
-| banking_mixed_reg | gauss_white_rot | 0.067 | 0.533 | 0.545 | — | 0.444 |
-| banking_mixed_reg | gauss_white_rot | 0.067 | 0.533 | 0.545 | — | 0.444 |
-| banking_mixed_reg | gauss_white_rot | 0.067 | 0.533 | 0.545 | — | 0.444 |
-| banking_mixed_reg | keyed_monotone | — | — | 0.517 | — | — |
-| banking_mixed_reg | keyed_monotone | — | — | 0.517 | — | — |
-| banking_mixed_reg | keyed_monotone | — | — | 0.517 | — | — |
-| banking_mixed_reg | keyed_monotone | — | — | 0.517 | — | — |
-| banking_mixed_reg | typed_keyed | 0.000 | 0.467 | 0.515 | — | 0.667 |
-| banking_mixed_reg | typed_keyed | 0.000 | 0.467 | 0.515 | — | 0.667 |
-| banking_mixed_reg | typed_keyed | 0.000 | 0.467 | 0.515 | — | 0.667 |
-| banking_mixed_reg | typed_keyed | 0.000 | 0.467 | 0.515 | — | 0.667 |
-| banking_mixed_reg | bn_adv | — | — | 0.541 | — | — |
-| banking_mixed_reg | bn_adv | — | — | 0.541 | — | — |
-| banking_mixed_reg | bn_adv | — | — | 0.541 | — | — |
-| banking_mixed_reg | bn_adv | — | — | 0.541 | — | — |
-| banking_mixed_reg | vib | — | — | 0.540 | — | — |
-| banking_mixed_reg | vib | — | — | 0.540 | — | — |
-| banking_mixed_reg | vib | — | — | 0.540 | — | — |
-| banking_mixed_reg | vib | — | — | 0.540 | — | — |
-| banking_mixed_reg | rff | — | — | 0.515 | — | — |
-| banking_mixed_reg | rff | — | — | 0.515 | — | — |
-| banking_mixed_reg | rff | — | — | 0.515 | — | — |
-| banking_mixed_reg | rff | — | — | 0.515 | — | — |
-| banking_mixed_clf | identity | 0.467 | 0.733 | 0.511 | — | 0.889 |
-| banking_mixed_clf | identity | 0.467 | 0.733 | 0.511 | — | 0.889 |
-| banking_mixed_clf | identity | 0.467 | 0.733 | 0.511 | — | 0.889 |
-| banking_mixed_clf | identity | 0.467 | 0.733 | 0.511 | — | 0.889 |
-| banking_mixed_clf | gauss | 0.133 | 0.733 | 0.506 | — | 0.889 |
-| banking_mixed_clf | gauss | 0.133 | 0.733 | 0.506 | — | 0.889 |
-| banking_mixed_clf | gauss | 0.133 | 0.733 | 0.506 | — | 0.889 |
-| banking_mixed_clf | gauss | 0.133 | 0.733 | 0.506 | — | 0.889 |
-| banking_mixed_clf | gauss_white_rot | 0.067 | 0.533 | 0.509 | — | 0.444 |
-| banking_mixed_clf | gauss_white_rot | 0.067 | 0.533 | 0.509 | — | 0.444 |
-| banking_mixed_clf | gauss_white_rot | 0.067 | 0.533 | 0.509 | — | 0.444 |
-| banking_mixed_clf | gauss_white_rot | 0.067 | 0.533 | 0.509 | — | 0.444 |
-| banking_mixed_clf | keyed_monotone | — | — | 0.541 | — | — |
-| banking_mixed_clf | keyed_monotone | — | — | 0.541 | — | — |
-| banking_mixed_clf | keyed_monotone | — | — | 0.541 | — | — |
-| banking_mixed_clf | keyed_monotone | — | — | 0.541 | — | — |
-| banking_mixed_clf | typed_keyed | 0.000 | 0.467 | 0.517 | — | 0.667 |
-| banking_mixed_clf | typed_keyed | 0.000 | 0.467 | 0.517 | — | 0.667 |
-| banking_mixed_clf | typed_keyed | 0.000 | 0.467 | 0.517 | — | 0.667 |
-| banking_mixed_clf | typed_keyed | 0.000 | 0.467 | 0.517 | — | 0.667 |
-| banking_mixed_clf | bn_adv | — | — | 0.507 | — | — |
-| banking_mixed_clf | bn_adv | — | — | 0.507 | — | — |
-| banking_mixed_clf | bn_adv | — | — | 0.507 | — | — |
-| banking_mixed_clf | bn_adv | — | — | 0.507 | — | — |
-| banking_mixed_clf | vib | — | — | 0.506 | — | — |
-| banking_mixed_clf | vib | — | — | 0.506 | — | — |
-| banking_mixed_clf | vib | — | — | 0.506 | — | — |
-| banking_mixed_clf | vib | — | — | 0.506 | — | — |
-| banking_mixed_clf | rff | — | — | 0.507 | — | — |
-| banking_mixed_clf | rff | — | — | 0.507 | — | — |
-| banking_mixed_clf | rff | — | — | 0.507 | — | — |
-| banking_mixed_clf | rff | — | — | 0.507 | — | — |
+| `secret_affine` | 1.005 | 0.998 | 1.006 | **1.003** | **1.000** | yes |
+| `typed_keyed` | 1.000 | 1.001 | 1.006 | **1.002** | 0.983 | yes |
+| `keyed_monotone` | 1.000 | 0.998 | 1.002 | 1.000 | 0.997 | yes |
+| `gauss` | 1.000 | 1.000 | 1.000 | 1.000 | 0.983 | yes |
+| `bn_adv` | 0.917 | 0.990 | 1.002 | 0.970 | 1.075 | yes |
+| `vib` | 0.903 | 0.992 | 1.008 | 0.968 | 1.074 | yes |
+| `vib_stoch` | 0.895 | 0.985 | 1.004 | 0.961 | 1.072 | no |
+| `std_rot` | 0.880 | 0.945 | 0.979 | 0.935 | 1.000 | no |
+| `gauss_white_rot` | 0.903 | 0.895 | 0.958 | 0.919 | 0.982 | no |
+| `rff` | 0.759 | 0.655 | 0.914 | 0.776 | 0.699 | no |
+| `microagg_rot` | 0.571 | 0.159 | 0.790 | 0.507 | 0.531 | no |
 
+Prediction agreement (HGB raw vs transformed, after remap) stays ≥ 0.96 for
+every method that clears the 90% floor.
+
+k-NN tracks HGB. MLP retention is noisy and sometimes > 1 because the raw MLP
+is under-trained (120 iterations, early stopping); do not over-read MLP ratios.
+
+**Phase 1 conclusion.** Utility is a solved problem for trees and linear
+models: `secret_affine` is an exact named-hiding ceiling; `typed_keyed` is
+essentially free for HGB and only a 2% linear tax. Learned maps are slightly
+lossy for trees on California housing and slightly helpful for linear models.
+
+---
+
+## 5. Attacker A results (known pairs)
+
+Grid: 1, 2, 5, 10, 25, 50, 100, 200 pairs. Attacks: ridge, pinv, rank/order,
+categorical frequency, HGB inversion, MLP inversion (heavy, seed 0).
+
+### Pairs to global ridge R² ≥ 0.5
+
+| Method | Typical n | Label |
+| --- | --- | --- |
+| `std_rot` | ~8–10 | collapses |
+| `identity` / `secret_affine` | ~10–25 | collapses |
+| `gauss` / `gauss_white_rot` / `keyed_monotone` | ~25 | partial / collapses |
+| `typed_keyed` | ~50–100 | partial (global), **worst-attr immediate** |
+| `bn_adv` / `vib` / `vib_stoch` / `rff` | > 200 | resistant *globally* |
+
+### Worst-attribute R² at the largest budget (HGB rows, mean)
+
+| Method | Worst-attr R² | Sensitive-attr R² |
+| --- | --- | --- |
+| `secret_affine` / `identity` / `std_rot` | 1.00 | 1.00 |
+| `typed_keyed` / `gauss` / `gauss_white_rot` | 0.97 | 0.97 |
+| `bn_adv` | 0.89 | 0.89 |
+| `bn_noisy` / `vib` | 0.83 | 0.83 |
+| `vib_stoch` | **0.76** | 0.76 |
+| `rff` | 0.69 | 0.69 |
+
+On `banking_mixed_reg`, `vib` worst-attribute R² is already 0.89 at **2 pairs**.
+The leak is not “the whole table”; it is the coordinates that determine `y`.
+
+Spearman leak (max |ρ| between any X column and any Z column, unpaired) is
+1.0 for every monotone / affine map and 0.33–0.89 for learned / rotated maps.
+
+---
+
+## 6. Attacker B results (Z + one context sentence)
+
+No keys, schema, names, or raw rows. Context example:
+*“This dataset comes from a bank and contains customer-related statistics.”*
+
+| Method | Semantic top-1 (bank) | Kind inference | Sensitive-col hit (bank) | Membership AUC |
+| --- | --- | --- | --- | --- |
+| `identity` | 0.20 (age, gender, money, rates) | 0.73 | 0.89 | 0.53 |
+| `gauss` | 0.00 | 0.73 | 0.89 | 0.53 |
+| `secret_affine` | 0.00 | 0.43–0.57 | 0.50–0.72 | 0.53 |
+| `typed_keyed` | **0.00** (all “unknown”) | 0.40–0.53 | 0.61–0.67 | 0.53 |
+| `gauss_white_rot` | 0.00 | 0.53 | 0.44 | 0.52 |
+| `vib` / `bn_*` | n/a (dims ≠ raw; no column alignment) | n/a | n/a | 0.52 |
+| `vib_stoch` | n/a | n/a | n/a | **0.65** (worse) |
+
+Membership inference from nearest-neighbor uniqueness is near chance except
+`vib_stoch`, whose deterministic keyed noise is a train-set signature.
+That variant is therefore **not** recommended despite slightly better
+known-pair numbers.
+
+Linkage via PCA nearest-neighbor against a same-size public-like table did
+not produce a reliable self-match once columns were mixed (metric often
+undefined when dimensions differ). Neighborhood-preserving maps remain the
+theoretical risk; it did not fire cleanly in this protocol.
+
+---
 
 ## 7. Security / utility trade-off
 
-Pareto view: HGB retention vs known-pair worst-attribute `R²`
-(see `results/figures/02_pareto_utility_leakage.png`).
-Selection rule: maximize practical privacy subject to minimal utility loss,
-operationalized as lowest mean worst-attribute leakage among methods with
-HGB retention ≥ 0.85 on every dataset when such methods exist.
+Axes used for selection:
 
-Selected method: **`vib`**
-(retention=0.9602526890116941, worst-attr leakage=0.6026803622381801,
-utility floor met=True).
+- Utility: HGB retention, linear retention, prediction agreement
+- Privacy: worst-attribute known-pair R², pairs-to-global-R²=0.5,
+  Attacker B semantic accuracy, membership AUC
+
+**Pareto observations**
+
+- Upper-right utility, no privacy: `identity`
+- Same utility, hide names/units only: `secret_affine`
+- Same tree utility, hide marginals/strings/semantics from Attacker B:
+  `typed_keyed` (best model-agnostic point)
+- Small tree tax, much lower *global* reconstruction, still high
+  worst-attribute leak: `vib`, `bn_adv`
+- Lower worst-attribute leak, breaks the 90% floor or raises MI:
+  `vib_stoch`, `rff`, `microagg_rot`
+
+**No tested point simultaneously keeps ≥ 90% HGB retention on every
+dataset and drives worst-attribute known-pair R² below 0.7.**
+That matches the prior numeric-only study and survives the broader grid.
+
+Figure: `results/figures/02_pareto_utility_leakage.png`.
+
+---
 
 ## 8. Recommended architecture
 
-Keep the schema, keys, and `g^{-1}` on the data-owner side.
+```
+owner holds schema, keys, g, optional local encoder
+  1. drop row identifiers
+  2. strings      -> HMAC-SHA256 buckets (many-to-one)
+  3. categoricals -> keyed code permutation
+  4. numerics     -> train-only quantile map
+  5. optional     -> VIB / bottleneck if labelled train data is local
+  6. secret permutation or rotation of the resulting columns
+  7. ỹ = g(y)     -> invertible affine / label permutation
+  8. send (Z, ỹ, ids c000…) to the trainer
+
+trainer fits any model M: Z -> ỹ   (no names, no raw values, no schema)
+
+owner / client returns ŷ = g^{-1}(M(Z_new))
+```
+
+This is the unusual requirement, met:
 
 ```
-owner:  X, y, schema
-        -> type-aware encode (HMAC strings, keyed cats, quantile nums)
-        -> optional local VIB / bottleneck if y is available locally
-        -> secret permutation / rotation
-        -> g(y) invertible target map
-        -> send (Z, y_tilde, anonymous column ids) to trainer
-trainer: fit M: Z -> y_tilde   (no names, no raw values)
-owner:   y_hat = g^{-1}(M(Z_new))
+train in transformed space
+and still obtain useful predictions in the original problem space
 ```
 
-This satisfies: train in transformed space; map predictions back; hide
-column names; support mixed types. It does **not** claim known-pair security.
+It is an obfuscated / lossy outsourced representation with an owner-side key.
+It is not encryption.
+
+---
 
 ## 9. Recommended transformation
 
-**`vib`** is the empirically preferred point on this grid.
-Use `typed_keyed` when the owner cannot train a local encoder (no `y` yet,
-or model-agnostic export). Use `vib` / `bn_adv` when a local labelled fit
-is acceptable and column semantics must be thoroughly mixed.
+**Default (model-agnostic, no local encoder): `typed_keyed`.**
+
+- HGB retention 1.00 on every dataset; linear 0.98
+- Attacker B cannot name columns (semantic 0.00 vs 0.20 on raw)
+- Strings are many-to-one; names are stripped; target units are hidden
+- Known-pair worst-attribute recovery remains trivial — disclose this
+
+**When the owner can fit a local labelled encoder and the threat includes
+unpaired / low-pair reconstruction of the whole table: `vib`.**
+
+- Only learned map that clears the 90% HGB floor on every dataset
+- Global reconstruction stays below 0.5 through 200 pairs
+- Worst-attribute leak of predictive fields remains (~0.83 mean, ~0.90 on banking)
+- Linear models are as good or better than raw
+
+**Do not ship `vib_stoch`** (membership AUC 0.65) or `microagg_rot` /
+`rff` as defaults (utility collapse).
+
+**Do not ship `gauss_white_rot` as “encrypted features.”** It is a keyed
+linear map and falls at `O(d)` pairs.
+
+---
 
 ## 10. Remaining attack surface
 
-- Known-pair inversion of any approximately invertible or low-dimensional map.
-- Recovery of attributes that cause `Y` from `Z` whenever `I(Z;Y)` is large.
-- Rank/frequency attacks against per-column monotone or keyed-categorical maps.
-- Linkage if neighborhood geometry is preserved and an overlapping public table exists.
-- Membership inference on deterministic unique rows (identifiers).
-- Side-channel leakage from `out_dim`, sparsity, and dummy-column structure.
-- The trainer still sees `y_tilde`; a weak `g` (affine) hides units, not ranks.
+- Known-pair / chosen-plaintext inversion of any approximately invertible stage
+- Recovery of `X` coordinates that cause `Y` whenever `I(Z;Y)` is large
+- Rank and frequency attacks on monotone or keyed-categorical columns
+- Linkage if an overlapping public table exists and neighborhoods survive
+- Membership inference on deterministic unique rows and on keyed noise
+- Side channels: `out_dim`, dummy-column count, sparsity, training-time encoder
+- `g` hides units and label ids, not the rank order of `y`
+- Trainer-side model inversion against released `M` is out of scope here
+  and remains possible if `M` is published
+
+---
 
 ## 11. Permanent regression tests
 
-See `tests/`. They lock: target invertibility, anonymous column ids, mixed-type
-support, identity utility ceiling, Attacker A/B interfaces, and the requirement
-that a recommended high-utility method must not expose raw column names.
+```
+python -m pytest tests/ -q
+```
+
+| Test | Locks |
+| --- | --- |
+| `test_target_map_*_roundtrip` | `g^{-1}∘g = id` |
+| `test_transformed_columns_are_anonymous` | no raw names in `Z` ids |
+| `test_typed_keyed_handles_mixed_types` | num/cat/string tables |
+| `test_gauss_is_rank_preserving_on_numeric` | monotone numeric property |
+| `test_attacker_a_identity_recovers_with_enough_pairs` | A is not a no-op |
+| `test_attacker_a_rotation_needs_pairs` | secret rotations are identifiable |
+| `test_attacker_b_does_not_need_schema` | B runs on Z + context only |
+| `test_unique_continuous_is_not_identifier` | B is not artificially confused |
+| `test_age_like_column_is_guessed` / money | B actually searches for semantics |
+| `test_predictions_remap_after_target_transform` | original-space predictions |
+
+Re-run `python run.py` after changing a transform; compare
+`results/tables/summary.csv` against this report.
+
+---
 
 ## Reproducibility
 
@@ -435,3 +352,7 @@ python -m pytest tests/ -q
 python run.py --quick
 python run.py
 ```
+
+Artifacts: `results/tables/`, `results/figures/`, per-seed JSON under
+`results/<dataset>/`. Auto-generated tables also land in
+`results/GENERATED_REPORT.md`.
