@@ -344,6 +344,23 @@ Re-run `python run.py` after changing a transform; compare
 
 ---
 
+## 12. Inference capsule (follow-up)
+
+The black-box attacker (no pairs) already failed against learned summaries.
+The follow-up hardens that family against the pair attacker without giving
+up the 90% utility floor.
+
+`capsule` = typed keyed front-end → adversarial VIB → 12-level quantize → secret rotation,
+plus reversible `g` on the target and an optional RSA envelope to the trainer.
+
+HGB retention: housing 0.91, bank-reg 0.98, bank-clf 0.96.
+Global reconstruction stays ~0.08 on the banking tables at 200 pairs (was ~0.36 for plain `vib`).
+Worst-attribute leakage of the columns that cause `y` is still practical at **2 pairs** (~0.75–0.88).
+Attacker B still cannot name columns. Membership stays near a coin flip.
+
+Public/private keys wrap the released file; they do not stop a trainer who already sees `Z`.
+The encoder must stay an owner secret. See `GUIA_DISFRAZ.md`.
+
 ## Reproducibility
 
 ```bash
