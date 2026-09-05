@@ -57,6 +57,7 @@ owner returns g^{-1}(M(Z_new))
 ```
 
 Default map when the owner cannot train a local encoder: **`typed_keyed`**.
-If labelled data can stay on-prem for an encoder fit: **`vib`**.
-Neither resists known-pair recovery of the attributes that cause `y`.
-See [`REPORT.md`](REPORT.md).
+If the table is only needed for inference: **`capsule`** (lossy summary of `X`,
+reversible disguise of `y`). Guide in Spanish: [`GUIA_DISFRAZ.md`](GUIA_DISFRAZ.md).
+Neither resists known-pair recovery of the attributes that cause `y` once the
+trainer has about two matched rows. See [`REPORT.md`](REPORT.md).
