@@ -556,6 +556,104 @@ class VIBTransform(BaseTransform):
         return Z @ self.R
 
 
+class InferenceCapsuleTransform(BaseTransform):
+    """Hardened inference-only summary: typed encode → VIB → quantize → rotate.
+
+    X is not meant to be inverted. y is still mapped by a reversible g so
+    predictions can be returned to the original problem scale.
+    """
+
+    name = "capsule"
+    requires_y = True
+    family = "learned"
+
+    def __init__(
+        self,
+        seed: int = 0,
+        ratio: float = 0.38,
+        beta: float = 0.012,
+        quantize_levels: int = 12,
+        adv_lambda: float = 0.12,
+        transform_target: bool = True,
+    ) -> None:
+        super().__init__(seed)
+        self.ratio = ratio
+        self.beta = beta
+        self.quantize_levels = quantize_levels
+        self.adv_lambda = adv_lambda
+        self.transform_target = transform_target
+        self.front = TypedKeyedTransform(seed=seed, transform_target=False)
+        self.model = None
+        self.u_mean: np.ndarray | None = None
+        self.u_std: np.ndarray | None = None
+        self.h_mean: np.ndarray | None = None
+        self.h_std: np.ndarray | None = None
+        self.R: np.ndarray | None = None
+        self.q_lo = -3.0
+        self.q_hi = 3.0
+        self.q_centers: np.ndarray | None = None
+
+    def fit(self, table: RawTable, train_idx: np.ndarray) -> "InferenceCapsuleTransform":
+        from src.learned import train_vib
+
+        self._init_target(table, train_idx, self.transform_target)
+        self.front.fit(table, train_idx)
+        U = self.front.transform_X(table.predictive_frame().iloc[train_idx])
+        self.u_mean = U.mean(axis=0)
+        self.u_std = U.std(axis=0) + 1e-8
+        Us = (U - self.u_mean) / self.u_std
+        k = max(4, int(round(self.ratio * U.shape[1])))
+        self.model = train_vib(
+            Us,
+            table.y[train_idx],
+            k,
+            task=table.task,
+            beta=self.beta,
+            seed=self.seed,
+            adversarial=True,
+            adv_lambda=self.adv_lambda,
+        )
+        H = self.model.encode(Us)
+        self.h_mean = H.mean(axis=0)
+        self.h_std = H.std(axis=0) + 1e-8
+        Hs = (H - self.h_mean) / self.h_std
+        edges = np.linspace(self.q_lo, self.q_hi, self.quantize_levels + 1)
+        self.q_centers = 0.5 * (edges[:-1] + edges[1:])
+        self.R = _random_orthogonal(k, self.rng)
+        self.out_dim = k
+        self.notes = {
+            "invertible": False,
+            "inference_only": True,
+            "target_reversible": True,
+            "preserves": ["predictive_signal_for_y"],
+            "destroys": ["raw_values", "column_names", "string_literals", "fine_grained_X"],
+            "owner_secret": [
+                "typed HMAC/cat maps",
+                "VIB encoder weights",
+                "quantizer",
+                "rotation R",
+                "target map g",
+            ],
+        }
+        del Hs
+        return self
+
+    def _quantize(self, H: np.ndarray) -> np.ndarray:
+        assert self.q_centers is not None
+        zc = np.clip(H, self.q_lo, self.q_hi)
+        width = (self.q_hi - self.q_lo) / self.quantize_levels
+        idx = np.floor((zc - self.q_lo) / width).astype(int)
+        idx = np.clip(idx, 0, self.quantize_levels - 1)
+        return self.q_centers[idx]
+
+    def transform_X(self, frame: pd.DataFrame) -> np.ndarray:
+        assert self.model is not None and self.R is not None
+        U = self.front.transform_X(frame)
+        Us = (U - self.u_mean) / self.u_std
+        H = (self.model.encode(Us) - self.h_mean) / self.h_std
+        return self._quantize(H) @ self.R
+
+
 class RFFTransform(BaseTransform):
     """Secret random Fourier features. Nonlinear mixing; linear inversion fails."""
 
@@ -693,6 +791,15 @@ def build_transform(name: str, seed: int) -> BaseTransform:
         "bn_noisy": lambda: SupervisedBottleneckTransform(seed, adversarial=True, noise=0.25),
         "vib": lambda: VIBTransform(seed, beta=1e-3, sample_at_transform=False),
         "vib_stoch": lambda: VIBTransform(seed, beta=5e-3, sample_at_transform=True),
+        "capsule": lambda: InferenceCapsuleTransform(
+            seed, ratio=0.38, beta=0.012, quantize_levels=12, adv_lambda=0.12
+        ),
+        "capsule_tight": lambda: InferenceCapsuleTransform(
+            seed, ratio=0.30, beta=0.02, quantize_levels=8, adv_lambda=0.16
+        ),
+        "capsule_soft": lambda: InferenceCapsuleTransform(
+            seed, ratio=0.45, beta=0.006, quantize_levels=16, adv_lambda=0.08
+        ),
         "rff": lambda: RFFTransform(seed),
         "microagg_rot": lambda: MicroaggRotTransform(seed),
         "noisy_gauss_rot": lambda: NoisyGaussRotTransform(seed, noise=0.35),
@@ -716,6 +823,7 @@ CANDIDATE_TRANSFORMS = [
     "bn_noisy",
     "vib",
     "vib_stoch",
+    "capsule",
     "rff",
     "microagg_rot",
     "noisy_gauss_rot",

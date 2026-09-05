@@ -156,20 +156,34 @@ def train_vib(
     epochs: int = 24,
     batch_size: int = 256,
     lr: float = 1e-3,
+    adversarial: bool = False,
+    adv_lambda: float = 0.1,
 ) -> NumpyEncoder:
     torch.manual_seed(seed)
     np.random.seed(seed)
     model = _VIB(X.shape[1], k, hidden, task)
+    decoder = _Decoder(k, X.shape[1], hidden) if adversarial else None
     opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-5)
+    opt_a = torch.optim.Adam(decoder.parameters(), lr=lr) if decoder is not None else None
     yt, _, _ = _prep_y(y, task)
     xt = torch.tensor(X.astype(np.float32))
     loader = DataLoader(TensorDataset(xt, yt), batch_size=min(batch_size, len(X)), shuffle=True)
     model.train()
+    if decoder is not None:
+        decoder.train()
     for _ in range(epochs):
         for xb, yb in loader:
             z, pred, mu, logvar = model(xb)
             kl = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
             loss = _pred_loss(pred, yb, task) + beta * kl
+            if decoder is not None and opt_a is not None:
+                opt_a.zero_grad()
+                torch.mean((decoder(z.detach()) - xb) ** 2).backward()
+                opt_a.step()
+                z, pred, mu, logvar = model(xb)
+                kl = -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
+                recon = torch.mean((decoder(z) - xb) ** 2)
+                loss = _pred_loss(pred, yb, task) + beta * kl - adv_lambda * recon
             opt.zero_grad()
             loss.backward()
             opt.step()
