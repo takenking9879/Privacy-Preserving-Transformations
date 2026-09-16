@@ -63,3 +63,39 @@ Artifacts:
 
 CART also keeps classification: TSTR AUC gap ≈ 0.012 (gate ≤ 0.05).
 Full write-up: [reports/RESULTS.md](reports/RESULTS.md).
+
+## Multi-dataset / método general
+
+Credit CART above is one DGP. The portable method is **`AutoSynthesizer`**:
+it inspects a generic mixed-type table (no hardcoded credit-risk column
+names), diagnoses margins / joints / `P(Y|X)`, and picks or blends
+copula, sequential CART, conditional mixture, and hybrid so the same
+`fit` / `sample` API travels across datasets.
+
+Ten original DGPs in `src.datasets` stress different failure modes:
+
+| DGP | What it stresses |
+| --- | --- |
+| `credit` | Mixed types, latent confounder, rare distressed cluster, interactions, hockey-stick `Y`, heteroscedasticity, counts, MAR missingness |
+| `healthcare` | Clinical mix (labs, codes, binaries), informative missingness, skewed costs, rare adverse `y_class` |
+| `retail` | High-cardinality categoricals, zero-inflated counts, promo / basket effects |
+| `insurance` | Heavy-tailed claims, deductibles / thresholds, rare large losses |
+| `interactions` | Multiplicative and threshold terms in `P(Y\|X)` — pairwise copulas lose TSTR |
+| `multimodal` | Distinct segments / mixture modes — a global Gaussian smears clusters |
+| `imbalanced` | Rare positive class; minority joints and TSTR AUC, not accuracy |
+| `heavytail` | Pareto / \(t\) margins and tail dependence — Gaussian copula understates extremes |
+| `panel` | Within-unit repeated measures — i.i.d. row synthesizers drop serial structure |
+| `sparse_linear` | Few linear drivers — copula should suffice; trees can overfit noise |
+
+Cross-dataset eval and report (same gates as the credit run: TSTR gap,
+`fidelity_score`, negative control):
+
+```bash
+python -m src.eval_multidataset
+python -m src.report_multidataset
+```
+
+`eval_multidataset` walks the registry, fits each synthesizer (including
+`AutoSynthesizer`) per DGP, and writes a multi-dataset artifact.
+`report_multidataset` turns that artifact into a cross-DGP leaderboard
+so a method is judged by how often it travels, not by credit CART alone.

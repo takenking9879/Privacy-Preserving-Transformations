@@ -117,6 +117,70 @@ _SPECS: dict[str, dict[str, tuple[str, ...]]] = {
             "Mixture",
         ),
     },
+    "forest": {
+        "modules": (
+            "src.synthesizers.forest_sequential",
+        ),
+        "functions": (
+            "synthesize_forest",
+            "synthesize",
+            "generate",
+            "generate_synthetic",
+            "fit_sample",
+            "fit_and_sample",
+        ),
+        "classes": (
+            "ForestSequentialSynthesizer",
+        ),
+    },
+    "knn": {
+        "modules": (
+            "src.synthesizers.knn_conditional",
+        ),
+        "functions": (
+            "synthesize_knn",
+            "synthesize",
+            "generate",
+            "generate_synthetic",
+            "fit_sample",
+            "fit_and_sample",
+        ),
+        "classes": (
+            "KNNConditionalSynthesizer",
+        ),
+    },
+    "auto": {
+        "modules": (
+            "src.synthesizers.auto",
+        ),
+        "functions": (
+            "synthesize_auto",
+            "synthesize",
+            "generate",
+            "generate_synthetic",
+            "fit_sample",
+            "fit_and_sample",
+        ),
+        "classes": (
+            "AutoSynthesizer",
+        ),
+    },
+    "ensemble": {
+        "modules": (
+            "src.synthesizers.ensemble",
+        ),
+        "functions": (
+            "synthesize_ensemble",
+            "synthesize",
+            "generate",
+            "generate_synthetic",
+            "fit_sample",
+            "fit_and_sample",
+        ),
+        "classes": (
+            "EnsembleSynthesizer",
+        ),
+    },
 }
 
 
@@ -428,6 +492,10 @@ def available() -> list[str]:
 
 def _register_defaults() -> None:
     for name in ("copula", "cart", "mixture", "hybrid"):
+        try_register(name)
+    # Optional families: register after the original four so a missing
+    # module only skips that family (try_register warns, does not raise).
+    for name in ("forest", "knn", "auto", "ensemble"):
         try_register(name)
 
 
