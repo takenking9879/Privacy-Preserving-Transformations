@@ -99,3 +99,28 @@ python -m src.report_multidataset
 `AutoSynthesizer`) per DGP, and writes a multi-dataset artifact.
 `report_multidataset` turns that artifact into a cross-DGP leaderboard
 so a method is judged by how often it travels, not by credit CART alone.
+
+### Latest suite (`n=280`, seed 0)
+
+A method is **general** only if it passes `interactions` **and** `multimodal`
+**and** `imbalanced` (fidelity ≥ 0.70 and TSTR R² gap ≤ 0.10). Credit CART
+does not get that seal.
+
+| method | passes | general? |
+| --- | --- | --- |
+| **auto** | **7/10** | **yes** (the three veto DGPs + credit, insurance, heavytail, sparse_linear) |
+| mixture | 6/10 | no (fails multimodal) |
+| ensemble | 5/10 | no |
+| copula | 5/10 | no (fails all three vetoes) |
+| knn | 4/10 | no |
+| cart | 3/10 | no (credit specialist) |
+| hybrid | 3/10 | no |
+| forest | 2/10 | no |
+| negative control | 0/10 | — |
+
+Still hard: `healthcare`, `retail`, `panel` — no portable method cleared all three
+plus those. Use `AutoSynthesizer` as the default portable API; use CART only
+when the table looks like the credit DGP.
+
+Full matrix: [reports/MULTI_DATASET.md](reports/MULTI_DATASET.md) · plan:
+[PLAN_GENERAL.md](PLAN_GENERAL.md).
