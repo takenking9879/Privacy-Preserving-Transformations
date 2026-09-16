@@ -50,3 +50,16 @@ Artifacts:
 - Best TSTR R² gap vs TRTR ≤ 0.08
 - Winning synthesizer `fidelity_score` ≥ 0.70
 - Negative control (column shuffle) fails those gates
+
+## Latest run (`n=1200`, seed 42)
+
+| method | fidelity | RF TSTR R² | RF TRTR R² | RF gap | gates |
+| --- | --- | --- | --- | --- | --- |
+| **cart** (winner) | 0.937 | 0.479 | 0.544 | **0.065** | pass |
+| mixture | 0.932 | 0.226 | 0.544 | 0.319 | fail TSTR |
+| hybrid | 0.889 | 0.262 | 0.544 | 0.282 | fail TSTR |
+| copula | 0.854 | 0.185 | 0.544 | 0.360 | fail TSTR |
+| negative control | 0.619 | −0.021 | 0.544 | 0.566 | fail (as required) |
+
+CART also keeps classification: TSTR AUC gap ≈ 0.012 (gate ≤ 0.05).
+Full write-up: [reports/RESULTS.md](reports/RESULTS.md).

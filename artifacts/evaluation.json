@@ -1,0 +1,4218 @@
+{
+  "schema_version": "1.0",
+  "meta": {
+    "n": 1200,
+    "n_train": 840,
+    "n_test": 360,
+    "test_size": 0.3,
+    "seed": 42,
+    "quick": false,
+    "dgp_source": "src.dgp",
+    "feature_cols": [
+      "age",
+      "income",
+      "tenure_months",
+      "region",
+      "segment",
+      "risk_score",
+      "num_products",
+      "is_premium",
+      "usage",
+      "engagement",
+      "complaint_count",
+      "credit_util"
+    ],
+    "target_reg": "y",
+    "target_clf": "y_class",
+    "target_reg_cols": [
+      "y"
+    ],
+    "target_clf_cols": [
+      "y_class"
+    ],
+    "registered_synthesizers": [
+      "copula",
+      "cart",
+      "mixture",
+      "hybrid"
+    ],
+    "output_path": "artifacts/evaluation.json"
+  },
+  "results": [
+    {
+      "name": "identity",
+      "role": "positive_control",
+      "status": "ok",
+      "error": null,
+      "n_synthetic": 840,
+      "elapsed_sec": 0.8702158070000223,
+      "is_negative_control": false,
+      "synth_csv": "/workspace/data/synthetic_identity.csv",
+      "fidelity": {
+        "n_rows_real": 840,
+        "n_rows_synth": 840,
+        "n_cols_compared": 14,
+        "columns_compared": [
+          "age",
+          "income",
+          "tenure_months",
+          "region",
+          "segment",
+          "risk_score",
+          "num_products",
+          "is_premium",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y",
+          "y_class"
+        ],
+        "numeric_columns": [
+          "age",
+          "income",
+          "tenure_months",
+          "risk_score",
+          "num_products",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y"
+        ],
+        "categorical_columns": [
+          "region",
+          "segment",
+          "is_premium",
+          "y_class"
+        ],
+        "per_column": {
+          "age": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "income": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "tenure_months": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "risk_score": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "num_products": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "usage": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "engagement": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "complaint_count": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "credit_util": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "y": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "region": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0
+          },
+          "segment": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0
+          },
+          "is_premium": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0
+          },
+          "y_class": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0
+          }
+        },
+        "ks_mean": 0.0,
+        "wasserstein_normalized_mean": 0.0,
+        "mean_relative_error_mean": 0.0,
+        "std_relative_error_mean": 0.0,
+        "tvd_mean": 0.0,
+        "pearson_corr_frobenius": 0.0,
+        "spearman_corr_frobenius": 0.0,
+        "mutual_info_pairs": [
+          {
+            "pair": [
+              "risk_score",
+              "credit_util"
+            ],
+            "mi_real": 0.34779852268618106,
+            "mi_synth": 0.34779852268618106,
+            "abs_delta": 0.0
+          },
+          {
+            "pair": [
+              "income",
+              "usage"
+            ],
+            "mi_real": 0.21031860471410635,
+            "mi_synth": 0.21031860471410635,
+            "abs_delta": 0.0
+          },
+          {
+            "pair": [
+              "age",
+              "tenure_months"
+            ],
+            "mi_real": 0.24611053372250202,
+            "mi_synth": 0.24611053372250202,
+            "abs_delta": 0.0
+          },
+          {
+            "pair": [
+              "risk_score",
+              "engagement"
+            ],
+            "mi_real": 0.18785367276977016,
+            "mi_synth": 0.18785367276977016,
+            "abs_delta": 0.0
+          },
+          {
+            "pair": [
+              "complaint_count",
+              "y"
+            ],
+            "mi_real": 0.050302406051446535,
+            "mi_synth": 0.050302406051446535,
+            "abs_delta": 0.0
+          }
+        ],
+        "mutual_info_drift_mean": 0.0,
+        "missingness": {
+          "age": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "income": {
+            "real": 0.07380952380952381,
+            "synth": 0.07380952380952381,
+            "abs_delta": 0.0
+          },
+          "tenure_months": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "region": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "segment": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "risk_score": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "num_products": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "is_premium": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "usage": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "engagement": {
+            "real": 0.05119047619047619,
+            "synth": 0.05119047619047619,
+            "abs_delta": 0.0
+          },
+          "complaint_count": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "credit_util": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y_class": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          }
+        },
+        "missingness_mae": 0.0,
+        "component_scores": {
+          "ks_sim": 1.0,
+          "wass_sim": 1.0,
+          "mean_sim": 1.0,
+          "std_sim": 1.0,
+          "tvd_sim": 1.0,
+          "pearson_sim": 1.0,
+          "spearman_sim": 1.0,
+          "mi_sim": 1.0,
+          "miss_sim": 1.0,
+          "xy_sim": 1.0,
+          "marginal_score": 1.0,
+          "dependence_score": 1.0
+        },
+        "xy_relationship": {
+          "target": "y",
+          "feature_corr": {
+            "age": {
+              "corr_real": 0.005789741256007316,
+              "corr_synth": 0.005789741256007316,
+              "abs_delta": 0.0
+            },
+            "income": {
+              "corr_real": -0.06749723066131195,
+              "corr_synth": -0.06749723066131195,
+              "abs_delta": 0.0
+            },
+            "tenure_months": {
+              "corr_real": -0.026851656952172214,
+              "corr_synth": -0.026851656952172214,
+              "abs_delta": 0.0
+            },
+            "risk_score": {
+              "corr_real": 0.4409159760494315,
+              "corr_synth": 0.4409159760494315,
+              "abs_delta": 0.0
+            },
+            "num_products": {
+              "corr_real": -0.06700389503052355,
+              "corr_synth": -0.06700389503052355,
+              "abs_delta": 0.0
+            },
+            "is_premium": {
+              "corr_real": -0.02108579627290607,
+              "corr_synth": -0.02108579627290607,
+              "abs_delta": 0.0
+            },
+            "usage": {
+              "corr_real": 0.045366865982662534,
+              "corr_synth": 0.045366865982662534,
+              "abs_delta": 0.0
+            },
+            "engagement": {
+              "corr_real": -0.2577501640405277,
+              "corr_synth": -0.2577501640405277,
+              "abs_delta": 0.0
+            },
+            "complaint_count": {
+              "corr_real": 0.39684153228809227,
+              "corr_synth": 0.39684153228809227,
+              "abs_delta": 0.0
+            },
+            "credit_util": {
+              "corr_real": 0.3850073672993628,
+              "corr_synth": 0.3850073672993628,
+              "abs_delta": 0.0
+            },
+            "y_class": {
+              "corr_real": 0.2703765139997136,
+              "corr_synth": 0.2703765139997136,
+              "abs_delta": 0.0
+            }
+          },
+          "corr_abs_delta_mean": 0.0,
+          "r2_real": 0.3230927235281724,
+          "r2_synth_with_real_coefs": 0.3230927235281724,
+          "r2_synth_refit": 0.3230927235281724,
+          "r2_delta": 0.0,
+          "coef_cosine_similarity": 1.0,
+          "n_features": 11,
+          "features": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util",
+            "y_class"
+          ]
+        },
+        "fidelity_score": 1.0,
+        "fidelity_score_formula": "fidelity_score = 0.30 * mean(marginal sims) + 0.30 * mean(X-structure sims) + 0.40 * xy_sim when target y is present; otherwise 0.40/0.60 marginal/dep. Marginal: s_ks=1-mean(KS); s_wass=1/(1+mean(W1/std_real)); s_mean=1/(1+mean(mean_rel_err)); s_std=1/(1+mean(std_rel_err)); s_tvd=1-mean(TVD); s_miss=1-mean(|miss_r-miss_s|) if NaNs exist. X-structure: s_pearson=exp(-||P_r-P_s||_F/sqrt(n)); same for Spearman; s_mi=1/(1+mean(|MI_r-MI_s|)). xy_sim = 0.5*(1-mean|corr(X,y)_r-corr(X,y)_s|) + 0.5*clip(OLS coef cosine,0,1). Missing families drop out and remaining weights renormalize. Clipped to [0, 1].",
+        "spearman_corr_frobenius_relative": 0.0,
+        "source": "src.metrics.statistical"
+      },
+      "utility": {
+        "regression": {
+          "linear": {
+            "trtr": {
+              "r2": 0.18861641532353612,
+              "rmse": 858.5429483235253,
+              "mae": 263.9912941559348
+            },
+            "tstr": {
+              "r2": 0.19020712255745775,
+              "rmse": 857.7009541570241,
+              "mae": 270.71310515698406
+            },
+            "trts": {
+              "r2": 0.37438799577908655,
+              "rmse": 584.362358968247,
+              "mae": 278.0125950002317
+            },
+            "tsts": {
+              "r2": 0.34994268660582484,
+              "rmse": 595.6697162753318,
+              "mae": 289.54829349527563
+            },
+            "tstr_gap_r2": -0.0015907072339216288
+          },
+          "random_forest": {
+            "trtr": {
+              "r2": 0.5444924713834846,
+              "rmse": 643.2750342627901,
+              "mae": 130.53865662804117
+            },
+            "tstr": {
+              "r2": 0.5824982136357177,
+              "rmse": 615.8544529282892,
+              "mae": 127.57481936709132
+            },
+            "trts": {
+              "r2": 0.8873871214678837,
+              "rmse": 247.9269437408839,
+              "mae": 71.55233179159774
+            },
+            "tsts": {
+              "r2": 0.5262408927061755,
+              "rmse": 508.5205203945486,
+              "mae": 134.2605001742597
+            },
+            "tstr_gap_r2": -0.03800574225223319
+          },
+          "mean": {
+            "trtr": {
+              "r2": 0.36655444335351034,
+              "rmse": 750.9089912931577,
+              "mae": 197.26497539198797
+            },
+            "tstr": {
+              "r2": 0.38635266809658775,
+              "rmse": 736.7777035426566,
+              "mae": 199.1439622620377
+            },
+            "trts": {
+              "r2": 0.6308875586234851,
+              "rmse": 416.14465135456544,
+              "mae": 174.78246339591473
+            },
+            "tsts": {
+              "r2": 0.43809178965600015,
+              "rmse": 552.0951183349403,
+              "mae": 211.90439683476768
+            },
+            "tstr_gap_r2": -0.01979822474307741
+          },
+          "tstr_gap_r2": -0.01979822474307741
+        },
+        "classification": {
+          "logistic": {
+            "trtr": {
+              "accuracy": 0.7972222222222223,
+              "roc_auc": 0.7759627525252526,
+              "f1": 0.496551724137931
+            },
+            "tstr": {
+              "accuracy": 0.7944444444444444,
+              "roc_auc": 0.7865767045454545,
+              "f1": 0.4931506849315068
+            },
+            "trts": {
+              "accuracy": 0.7976190476190477,
+              "roc_auc": 0.85502218636547,
+              "f1": 0.5565217391304348
+            },
+            "tsts": {
+              "accuracy": 0.8015873015873016,
+              "roc_auc": 0.8350947962888261,
+              "f1": 0.5614035087719298
+            },
+            "tstr_gap_accuracy": 0.002777777777777879,
+            "tstr_gap_roc_auc": -0.010613952020201878,
+            "tstr_gap_f1": 0.0034010392064242057
+          },
+          "random_forest": {
+            "trtr": {
+              "accuracy": 0.7888888888888889,
+              "roc_auc": 0.7879182449494949,
+              "f1": 0.5064935064935064
+            },
+            "tstr": {
+              "accuracy": 0.7944444444444444,
+              "roc_auc": 0.7825915404040404,
+              "f1": 0.5256410256410257
+            },
+            "trts": {
+              "accuracy": 0.9285714285714286,
+              "roc_auc": 0.9889471561113352,
+              "f1": 0.8448275862068966
+            },
+            "tsts": {
+              "accuracy": 0.8293650793650794,
+              "roc_auc": 0.79919322307382,
+              "f1": 0.6260869565217392
+            },
+            "tstr_gap_accuracy": -0.005555555555555536,
+            "tstr_gap_roc_auc": 0.005326704545454475,
+            "tstr_gap_f1": -0.01914751914751922
+          },
+          "mean": {
+            "trtr": {
+              "accuracy": 0.7930555555555556,
+              "roc_auc": 0.7819404987373737,
+              "f1": 0.5015226153157187
+            },
+            "tstr": {
+              "accuracy": 0.7944444444444444,
+              "roc_auc": 0.7845841224747474,
+              "f1": 0.5093958552862663
+            },
+            "trts": {
+              "accuracy": 0.8630952380952381,
+              "roc_auc": 0.9219846712384026,
+              "f1": 0.7006746626686657
+            },
+            "tsts": {
+              "accuracy": 0.8154761904761905,
+              "roc_auc": 0.8171440096813231,
+              "f1": 0.5937452326468344
+            },
+            "tstr_gap_accuracy": -0.0013888888888888284,
+            "tstr_gap_roc_auc": -0.0026436237373737015,
+            "tstr_gap_f1": -0.007873239970547508
+          }
+        },
+        "tstr_gap_r2": -0.01979822474307741,
+        "pred_agreement": {
+          "paired": false,
+          "regression": {
+            "linear": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 241.65803015868897,
+              "pred_mean_synth": 241.57784545192885,
+              "pred_std_real": 404.73603766727103,
+              "pred_std_synth": 416.75348606894823,
+              "ks_stat": 0.03095238095238101,
+              "ks_pvalue": 0.8161441027592761,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 227.70456930992694,
+              "pred_mean_synth": 235.1865811983088,
+              "pred_std_real": 524.493030104612,
+              "pred_std_synth": 545.9832705237388,
+              "ks_stat": 0.029761904761904767,
+              "ks_pvalue": 0.851160284683691,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          },
+          "classification": {
+            "logistic": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.2658139213631528,
+              "pred_mean_synth": 0.2678769645099219,
+              "pred_std_real": 0.22472767440691674,
+              "pred_std_synth": 0.23004949537109048,
+              "ks_stat": 0.02857142857142858,
+              "ks_pvalue": 0.8831141138339893,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.26038560834417324,
+              "pred_mean_synth": 0.2639449617405823,
+              "pred_std_real": 0.24241062694366236,
+              "pred_std_synth": 0.2569337784242844,
+              "ks_stat": 0.0535714285714286,
+              "ks_pvalue": 0.1794248316000601,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          }
+        },
+        "utility_score": 0.9811047101436245,
+        "utility_score_formula": "utility_score = clip(w-mean of available terms, 0, 1): 0.50 * mean_m (1 - clip(|R2_TRTR - R2_TSTR|, 0, 1))  [regression TSTR]; 0.20 * mean_m (1 - clip(|AUC_TRTR - AUC_TSTR|, 0, 1))  [clf TSTR, fallback to accuracy then f1]; 0.30 * agreement_score. agreement_score = 0.55 * clip(corr, 0, 1) + 0.45 * (1 - KS) when paired (corr = mean of clip(spearman,0,1) and clip(pearson,0,1)); otherwise 0.70 * (1 - KS) + 0.30 * moment_score, where moment_score = 1 - 0.5 * |\u03bcr-\u03bcs| / (|\u03bcr|+|\u03bcs|+\u03c3r+\u03c3s+\u03b5) - 0.5 * |\u03c3r-\u03c3s| / (\u03c3r+\u03c3s+\u03b5). Per-task agreement is averaged over the fitted frozen models. Missing families are dropped and the remaining weights renormalized.",
+        "meta": {
+          "n_real": 1200,
+          "n_synth": 840,
+          "n_real_train": 840,
+          "n_real_test": 360,
+          "n_synth_train": 588,
+          "n_synth_test": 252,
+          "test_size": 0.3,
+          "seed": 42,
+          "target_reg": "y",
+          "target_clf": "y_class",
+          "feature_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "region",
+            "segment",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "numeric_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "categorical_cols": [
+            "region",
+            "segment"
+          ],
+          "paired_rows": false,
+          "protocol": {
+            "trtr": "train real train \u2192 test real holdout",
+            "tstr": "train synth train \u2192 test the same real holdout",
+            "trts": "train real train \u2192 test synth holdout",
+            "tsts": "train synth train \u2192 test synth holdout"
+          }
+        },
+        "source": "src.metrics.utility"
+      },
+      "fidelity_score": 1.0,
+      "utility_score": 0.9811047101436245,
+      "combined_score": 1.9811047101436245,
+      "gates": {
+        "fidelity_score_ge_0.70": true,
+        "corr_frobenius_rel_le_0.30": true,
+        "tstr_r2_gap_le_0.08": true,
+        "tstr_auc_gap_le_0.05": true,
+        "r2_gap": -0.01979822474307741,
+        "auc_gap": -0.0026436237373737015,
+        "corr_frobenius_relative": 0.0,
+        "passes": true
+      },
+      "tstr_gap_r2": -0.01979822474307741,
+      "tstr_r2_linear": 0.19020712255745775,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.5824982136357177,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "name": "copula",
+      "role": "method",
+      "status": "ok",
+      "error": null,
+      "n_synthetic": 840,
+      "elapsed_sec": 0.8915826559999687,
+      "is_negative_control": false,
+      "synth_csv": "/workspace/data/synthetic_copula.csv",
+      "fidelity": {
+        "n_rows_real": 840,
+        "n_rows_synth": 840,
+        "n_cols_compared": 14,
+        "columns_compared": [
+          "age",
+          "income",
+          "tenure_months",
+          "region",
+          "segment",
+          "risk_score",
+          "num_products",
+          "is_premium",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y",
+          "y_class"
+        ],
+        "numeric_columns": [
+          "age",
+          "income",
+          "tenure_months",
+          "risk_score",
+          "num_products",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y"
+        ],
+        "categorical_columns": [
+          "region",
+          "segment",
+          "is_premium",
+          "y_class"
+        ],
+        "per_column": {
+          "age": {
+            "type": "numeric",
+            "ks_statistic": 0.045238095238095244,
+            "wasserstein_1_normalized": 0.07241963246151255,
+            "mean_relative_error": 0.015559669436058984,
+            "std_relative_error": 0.03902199228246647,
+            "tvd": null
+          },
+          "income": {
+            "type": "numeric",
+            "ks_statistic": 0.018683843626401075,
+            "wasserstein_1_normalized": 0.022319665386000918,
+            "mean_relative_error": 0.009603792635319621,
+            "std_relative_error": 0.037673288957998666,
+            "tvd": null
+          },
+          "tenure_months": {
+            "type": "numeric",
+            "ks_statistic": 0.025,
+            "wasserstein_1_normalized": 0.02937486606276222,
+            "mean_relative_error": 0.007964161274265521,
+            "std_relative_error": 0.01708495909931814,
+            "tvd": null
+          },
+          "risk_score": {
+            "type": "numeric",
+            "ks_statistic": 0.02619047619047621,
+            "wasserstein_1_normalized": 0.0480693451954042,
+            "mean_relative_error": 0.010083595234895968,
+            "std_relative_error": 0.03176922750486197,
+            "tvd": null
+          },
+          "num_products": {
+            "type": "numeric",
+            "ks_statistic": 0.020238095238095277,
+            "wasserstein_1_normalized": 0.04954819012541957,
+            "mean_relative_error": 0.03580097087376814,
+            "std_relative_error": 0.03772834809023306,
+            "tvd": null
+          },
+          "usage": {
+            "type": "numeric",
+            "ks_statistic": 0.033333333333333326,
+            "wasserstein_1_normalized": 0.04962527357058385,
+            "mean_relative_error": 0.008181170435355966,
+            "std_relative_error": 0.09290959593519386,
+            "tvd": null
+          },
+          "engagement": {
+            "type": "numeric",
+            "ks_statistic": 0.03426675791794975,
+            "wasserstein_1_normalized": 0.04797964907530487,
+            "mean_relative_error": 0.0013869866135782331,
+            "std_relative_error": 0.009377688739950886,
+            "tvd": null
+          },
+          "complaint_count": {
+            "type": "numeric",
+            "ks_statistic": 0.020238095238095277,
+            "wasserstein_1_normalized": 0.03257023433869479,
+            "mean_relative_error": 0.04323570432351976,
+            "std_relative_error": 0.0738664759517809,
+            "tvd": null
+          },
+          "credit_util": {
+            "type": "numeric",
+            "ks_statistic": 0.033333333333333326,
+            "wasserstein_1_normalized": 0.050021441402515854,
+            "mean_relative_error": 0.02357764253646655,
+            "std_relative_error": 0.0008276168672760083,
+            "tvd": null
+          },
+          "y": {
+            "type": "numeric",
+            "ks_statistic": 0.036904761904761885,
+            "wasserstein_1_normalized": 0.08017548471811213,
+            "mean_relative_error": 0.22455316147650864,
+            "std_relative_error": 0.4967731540013329,
+            "tvd": null
+          },
+          "region": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.030952380952380933
+          },
+          "segment": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.015476190476190511
+          },
+          "is_premium": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0035714285714285657
+          },
+          "y_class": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.010714285714285704
+          }
+        },
+        "ks_mean": 0.029342679202054134,
+        "wasserstein_normalized_mean": 0.0482103782336311,
+        "mean_relative_error_mean": 0.037994685483973736,
+        "std_relative_error_mean": 0.08370323474304128,
+        "tvd_mean": 0.015178571428571428,
+        "pearson_corr_frobenius": 2.644666734851902,
+        "spearman_corr_frobenius": 2.623206812049688,
+        "mutual_info_pairs": [
+          {
+            "pair": [
+              "risk_score",
+              "credit_util"
+            ],
+            "mi_real": 0.34779852268618106,
+            "mi_synth": 0.37665453393174175,
+            "abs_delta": 0.028856011245560698
+          },
+          {
+            "pair": [
+              "income",
+              "usage"
+            ],
+            "mi_real": 0.21031860471410635,
+            "mi_synth": 0.2679488281756983,
+            "abs_delta": 0.05763022346159197
+          },
+          {
+            "pair": [
+              "age",
+              "tenure_months"
+            ],
+            "mi_real": 0.24611053372250202,
+            "mi_synth": 0.19691026423215963,
+            "abs_delta": 0.049200269490342396
+          },
+          {
+            "pair": [
+              "risk_score",
+              "engagement"
+            ],
+            "mi_real": 0.18785367276977016,
+            "mi_synth": 0.21091344809325374,
+            "abs_delta": 0.023059775323483578
+          },
+          {
+            "pair": [
+              "complaint_count",
+              "y"
+            ],
+            "mi_real": 0.050302406051446535,
+            "mi_synth": 0.078853318770161,
+            "abs_delta": 0.02855091271871446
+          }
+        ],
+        "mutual_info_drift_mean": 0.03745943844793862,
+        "missingness": {
+          "age": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "income": {
+            "real": 0.07380952380952381,
+            "synth": 0.058333333333333334,
+            "abs_delta": 0.015476190476190477
+          },
+          "tenure_months": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "region": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "segment": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "risk_score": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "num_products": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "is_premium": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "usage": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "engagement": {
+            "real": 0.05119047619047619,
+            "synth": 0.05714285714285714,
+            "abs_delta": 0.005952380952380952
+          },
+          "complaint_count": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "credit_util": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y_class": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          }
+        },
+        "missingness_mae": 0.001530612244897959,
+        "component_scores": {
+          "ks_sim": 0.9706573207979459,
+          "wass_sim": 0.954006963454348,
+          "mean_sim": 0.9633960693486033,
+          "std_sim": 0.9227618483921123,
+          "tvd_sim": 0.9848214285714286,
+          "pearson_sim": 0.4660559789160518,
+          "spearman_sim": 0.46895213208073,
+          "mi_sim": 0.963893105542537,
+          "miss_sim": 0.9984693877551021,
+          "xy_sim": 0.9348713616286504,
+          "marginal_score": 0.9656855030532566,
+          "dependence_score": 0.632967072179773
+        },
+        "xy_relationship": {
+          "target": "y",
+          "feature_corr": {
+            "age": {
+              "corr_real": 0.005789741256007316,
+              "corr_synth": -0.0022096751501922323,
+              "abs_delta": 0.007999416406199548
+            },
+            "income": {
+              "corr_real": -0.06749723066131195,
+              "corr_synth": -0.07163277378427167,
+              "abs_delta": 0.004135543122959717
+            },
+            "tenure_months": {
+              "corr_real": -0.026851656952172214,
+              "corr_synth": -0.06789611400604825,
+              "abs_delta": 0.041044457053876035
+            },
+            "risk_score": {
+              "corr_real": 0.4409159760494315,
+              "corr_synth": 0.40016330924752735,
+              "abs_delta": 0.04075266680190415
+            },
+            "num_products": {
+              "corr_real": -0.06700389503052355,
+              "corr_synth": -0.033000050697369575,
+              "abs_delta": 0.034003844333153975
+            },
+            "is_premium": {
+              "corr_real": -0.02108579627290607,
+              "corr_synth": -0.03726422661413668,
+              "abs_delta": 0.016178430341230614
+            },
+            "usage": {
+              "corr_real": 0.045366865982662534,
+              "corr_synth": 0.01713203376592634,
+              "abs_delta": 0.028234832216736193
+            },
+            "engagement": {
+              "corr_real": -0.2577501640405277,
+              "corr_synth": -0.17498961839901644,
+              "abs_delta": 0.08276054564151125
+            },
+            "complaint_count": {
+              "corr_real": 0.39684153228809227,
+              "corr_synth": 0.1310910395573541,
+              "abs_delta": 0.26575049273073814
+            },
+            "credit_util": {
+              "corr_real": 0.3850073672993628,
+              "corr_synth": 0.3789245092497739,
+              "abs_delta": 0.006082858049588913
+            },
+            "y_class": {
+              "corr_real": 0.2703765139997136,
+              "corr_synth": -0.12930786463896665,
+              "abs_delta": 0.3996843786386802
+            }
+          },
+          "corr_abs_delta_mean": 0.08423886048514352,
+          "r2_real": 0.3230927235281724,
+          "r2_synth_with_real_coefs": -0.0955375771836231,
+          "r2_synth_refit": 0.2277105994070181,
+          "r2_delta": 0.4186303007117955,
+          "coef_cosine_similarity": 0.9539815837424441,
+          "n_features": 11,
+          "features": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util",
+            "y_class"
+          ]
+        },
+        "fidelity_score": 0.853544317221369,
+        "fidelity_score_formula": "fidelity_score = 0.30 * mean(marginal sims) + 0.30 * mean(X-structure sims) + 0.40 * xy_sim when target y is present; otherwise 0.40/0.60 marginal/dep. Marginal: s_ks=1-mean(KS); s_wass=1/(1+mean(W1/std_real)); s_mean=1/(1+mean(mean_rel_err)); s_std=1/(1+mean(std_rel_err)); s_tvd=1-mean(TVD); s_miss=1-mean(|miss_r-miss_s|) if NaNs exist. X-structure: s_pearson=exp(-||P_r-P_s||_F/sqrt(n)); same for Spearman; s_mi=1/(1+mean(|MI_r-MI_s|)). xy_sim = 0.5*(1-mean|corr(X,y)_r-corr(X,y)_s|) + 0.5*clip(OLS coef cosine,0,1). Missing families drop out and remaining weights renormalize. Clipped to [0, 1].",
+        "spearman_corr_frobenius_relative": 0.07764607826573511,
+        "source": "src.metrics.statistical"
+      },
+      "utility": {
+        "regression": {
+          "linear": {
+            "trtr": {
+              "r2": 0.18861641532353612,
+              "rmse": 858.5429483235253,
+              "mae": 263.9912941559348
+            },
+            "tstr": {
+              "r2": 0.11906757549486424,
+              "rmse": 894.5821218791406,
+              "mae": 205.23552950527682
+            },
+            "trts": {
+              "r2": -1.0821444596563352,
+              "rmse": 310.33630594424153,
+              "mae": 228.44421733064993
+            },
+            "tsts": {
+              "r2": 0.13594279786533636,
+              "rmse": 199.9163917350301,
+              "mae": 132.75960656546349
+            },
+            "tstr_gap_r2": 0.06954883982867188
+          },
+          "random_forest": {
+            "trtr": {
+              "r2": 0.5444924713834846,
+              "rmse": 643.2750342627901,
+              "mae": 130.53865662804117
+            },
+            "tstr": {
+              "r2": 0.18486190404340674,
+              "rmse": 860.5270215355763,
+              "mae": 175.23755848262914
+            },
+            "trts": {
+              "r2": -0.12797701035244824,
+              "rmse": 228.41639950837376,
+              "mae": 109.78670002715707
+            },
+            "tsts": {
+              "r2": -0.09071519885363077,
+              "rmse": 224.61194050646054,
+              "mae": 97.02072497292185
+            },
+            "tstr_gap_r2": 0.3596305673400778
+          },
+          "mean": {
+            "trtr": {
+              "r2": 0.36655444335351034,
+              "rmse": 750.9089912931577,
+              "mae": 197.26497539198797
+            },
+            "tstr": {
+              "r2": 0.1519647397691355,
+              "rmse": 877.5545717073585,
+              "mae": 190.23654399395298
+            },
+            "trts": {
+              "r2": -0.6050607350043917,
+              "rmse": 269.37635272630763,
+              "mae": 169.1154586789035
+            },
+            "tsts": {
+              "r2": 0.022613799505852794,
+              "rmse": 212.2641661207453,
+              "mae": 114.89016576919266
+            },
+            "tstr_gap_r2": 0.21458970358437485
+          },
+          "tstr_gap_r2": 0.21458970358437485
+        },
+        "classification": {
+          "logistic": {
+            "trtr": {
+              "accuracy": 0.7972222222222223,
+              "roc_auc": 0.7759627525252526,
+              "f1": 0.496551724137931
+            },
+            "tstr": {
+              "accuracy": 0.6333333333333333,
+              "roc_auc": 0.24206912878787878,
+              "f1": 0.043478260869565216
+            },
+            "trts": {
+              "accuracy": 0.5912698412698413,
+              "roc_auc": 0.29403453689167974,
+              "f1": 0.05504587155963303
+            },
+            "tsts": {
+              "accuracy": 0.7182539682539683,
+              "roc_auc": 0.703767660910518,
+              "f1": 0.3364485981308411
+            },
+            "tstr_gap_accuracy": 0.16388888888888897,
+            "tstr_gap_roc_auc": 0.5338936237373738,
+            "tstr_gap_f1": 0.45307346326836584
+          },
+          "random_forest": {
+            "trtr": {
+              "accuracy": 0.7888888888888889,
+              "roc_auc": 0.7879182449494949,
+              "f1": 0.5064935064935064
+            },
+            "tstr": {
+              "accuracy": 0.6555555555555556,
+              "roc_auc": 0.24021464646464644,
+              "f1": 0.03125
+            },
+            "trts": {
+              "accuracy": 0.5753968253968254,
+              "roc_auc": 0.31805337519623234,
+              "f1": 0.10084033613445378
+            },
+            "tsts": {
+              "accuracy": 0.7103174603174603,
+              "roc_auc": 0.6712715855572999,
+              "f1": 0.23157894736842105
+            },
+            "tstr_gap_accuracy": 0.1333333333333333,
+            "tstr_gap_roc_auc": 0.5477035984848485,
+            "tstr_gap_f1": 0.47524350649350644
+          },
+          "mean": {
+            "trtr": {
+              "accuracy": 0.7930555555555556,
+              "roc_auc": 0.7819404987373737,
+              "f1": 0.5015226153157187
+            },
+            "tstr": {
+              "accuracy": 0.6444444444444444,
+              "roc_auc": 0.2411418876262626,
+              "f1": 0.03736413043478261
+            },
+            "trts": {
+              "accuracy": 0.5833333333333333,
+              "roc_auc": 0.30604395604395607,
+              "f1": 0.07794310384704341
+            },
+            "tsts": {
+              "accuracy": 0.7142857142857143,
+              "roc_auc": 0.6875196232339089,
+              "f1": 0.2840137727496311
+            },
+            "tstr_gap_accuracy": 0.14861111111111114,
+            "tstr_gap_roc_auc": 0.5407986111111112,
+            "tstr_gap_f1": 0.46415848488093614
+          }
+        },
+        "tstr_gap_r2": 0.21458970358437485,
+        "pred_agreement": {
+          "paired": false,
+          "regression": {
+            "linear": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 241.65803015868897,
+              "pred_mean_synth": 223.31077968942432,
+              "pred_std_real": 404.73603766727103,
+              "pred_std_synth": 381.19064570665165,
+              "ks_stat": 0.0535714285714286,
+              "ks_pvalue": 0.1794248316000601,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 227.70456930992694,
+              "pred_mean_synth": 215.35983203249987,
+              "pred_std_real": 524.493030104612,
+              "pred_std_synth": 393.4999056547538,
+              "ks_stat": 0.04047619047619044,
+              "ks_pvalue": 0.4971973210058304,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          },
+          "classification": {
+            "logistic": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.2658139213631528,
+              "pred_mean_synth": 0.26074472899134554,
+              "pred_std_real": 0.22472767440691674,
+              "pred_std_synth": 0.219518588892328,
+              "ks_stat": 0.0488095238095238,
+              "ks_pvalue": 0.26979341664214934,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.26038560834417324,
+              "pred_mean_synth": 0.2613773081993352,
+              "pred_std_real": 0.24241062694366236,
+              "pred_std_synth": 0.2133916735045711,
+              "ks_stat": 0.09523809523809523,
+              "ks_pvalue": 0.0009751626879392952,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          }
+        },
+        "utility_score": 0.768917716982333,
+        "utility_score_formula": "utility_score = clip(w-mean of available terms, 0, 1): 0.50 * mean_m (1 - clip(|R2_TRTR - R2_TSTR|, 0, 1))  [regression TSTR]; 0.20 * mean_m (1 - clip(|AUC_TRTR - AUC_TSTR|, 0, 1))  [clf TSTR, fallback to accuracy then f1]; 0.30 * agreement_score. agreement_score = 0.55 * clip(corr, 0, 1) + 0.45 * (1 - KS) when paired (corr = mean of clip(spearman,0,1) and clip(pearson,0,1)); otherwise 0.70 * (1 - KS) + 0.30 * moment_score, where moment_score = 1 - 0.5 * |\u03bcr-\u03bcs| / (|\u03bcr|+|\u03bcs|+\u03c3r+\u03c3s+\u03b5) - 0.5 * |\u03c3r-\u03c3s| / (\u03c3r+\u03c3s+\u03b5). Per-task agreement is averaged over the fitted frozen models. Missing families are dropped and the remaining weights renormalized.",
+        "meta": {
+          "n_real": 1200,
+          "n_synth": 840,
+          "n_real_train": 840,
+          "n_real_test": 360,
+          "n_synth_train": 588,
+          "n_synth_test": 252,
+          "test_size": 0.3,
+          "seed": 42,
+          "target_reg": "y",
+          "target_clf": "y_class",
+          "feature_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "region",
+            "segment",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "numeric_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "categorical_cols": [
+            "region",
+            "segment"
+          ],
+          "paired_rows": false,
+          "protocol": {
+            "trtr": "train real train \u2192 test real holdout",
+            "tstr": "train synth train \u2192 test the same real holdout",
+            "trts": "train real train \u2192 test synth holdout",
+            "tsts": "train synth train \u2192 test synth holdout"
+          }
+        },
+        "source": "src.metrics.utility"
+      },
+      "fidelity_score": 0.853544317221369,
+      "utility_score": 0.768917716982333,
+      "combined_score": 1.6224620342037022,
+      "gates": {
+        "fidelity_score_ge_0.70": true,
+        "corr_frobenius_rel_le_0.30": true,
+        "tstr_r2_gap_le_0.08": false,
+        "tstr_auc_gap_le_0.05": false,
+        "r2_gap": 0.21458970358437485,
+        "auc_gap": 0.5407986111111112,
+        "corr_frobenius_relative": 0.07764607826573511,
+        "passes": false
+      },
+      "tstr_gap_r2": 0.21458970358437485,
+      "tstr_r2_linear": 0.11906757549486424,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.18486190404340674,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "name": "cart",
+      "role": "method",
+      "status": "ok",
+      "error": null,
+      "n_synthetic": 840,
+      "elapsed_sec": 0.9255370870000661,
+      "is_negative_control": false,
+      "synth_csv": "/workspace/data/synthetic_cart.csv",
+      "fidelity": {
+        "n_rows_real": 840,
+        "n_rows_synth": 840,
+        "n_cols_compared": 14,
+        "columns_compared": [
+          "age",
+          "income",
+          "tenure_months",
+          "region",
+          "segment",
+          "risk_score",
+          "num_products",
+          "is_premium",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y",
+          "y_class"
+        ],
+        "numeric_columns": [
+          "age",
+          "income",
+          "tenure_months",
+          "risk_score",
+          "num_products",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y"
+        ],
+        "categorical_columns": [
+          "region",
+          "segment",
+          "is_premium",
+          "y_class"
+        ],
+        "per_column": {
+          "age": {
+            "type": "numeric",
+            "ks_statistic": 0.033333333333333326,
+            "wasserstein_1_normalized": 0.052057182030453675,
+            "mean_relative_error": 0.011262652412247838,
+            "std_relative_error": 0.025560768084639755,
+            "tvd": null
+          },
+          "income": {
+            "type": "numeric",
+            "ks_statistic": 0.02376973925817119,
+            "wasserstein_1_normalized": 0.03002145643769995,
+            "mean_relative_error": 0.013891488842558818,
+            "std_relative_error": 0.001150187597149914,
+            "tvd": null
+          },
+          "tenure_months": {
+            "type": "numeric",
+            "ks_statistic": 0.020238095238095277,
+            "wasserstein_1_normalized": 0.027115260981011285,
+            "mean_relative_error": 0.015085959336830023,
+            "std_relative_error": 0.015048063068126085,
+            "tvd": null
+          },
+          "risk_score": {
+            "type": "numeric",
+            "ks_statistic": 0.02619047619047618,
+            "wasserstein_1_normalized": 0.034083655207995694,
+            "mean_relative_error": 0.005039369722299575,
+            "std_relative_error": 0.012721324065508407,
+            "tvd": null
+          },
+          "num_products": {
+            "type": "numeric",
+            "ks_statistic": 0.00952380952380949,
+            "wasserstein_1_normalized": 0.021446231546823378,
+            "mean_relative_error": 0.0006067961165045429,
+            "std_relative_error": 0.023493132277803645,
+            "tvd": null
+          },
+          "usage": {
+            "type": "numeric",
+            "ks_statistic": 0.040476190476190554,
+            "wasserstein_1_normalized": 0.0724660563561277,
+            "mean_relative_error": 0.05109412068538395,
+            "std_relative_error": 0.07476090988447806,
+            "tvd": null
+          },
+          "engagement": {
+            "type": "numeric",
+            "ks_statistic": 0.016090099778932998,
+            "wasserstein_1_normalized": 0.02778647786138715,
+            "mean_relative_error": 0.0035676842881586586,
+            "std_relative_error": 0.00730484078558824,
+            "tvd": null
+          },
+          "complaint_count": {
+            "type": "numeric",
+            "ks_statistic": 0.015476190476190532,
+            "wasserstein_1_normalized": 0.026510655857077226,
+            "mean_relative_error": 0.029288702928835876,
+            "std_relative_error": 0.056966235240270294,
+            "tvd": null
+          },
+          "credit_util": {
+            "type": "numeric",
+            "ks_statistic": 0.01904761904761909,
+            "wasserstein_1_normalized": 0.02910145582785732,
+            "mean_relative_error": 0.007512478497029043,
+            "std_relative_error": 0.00832782147938808,
+            "tvd": null
+          },
+          "y": {
+            "type": "numeric",
+            "ks_statistic": 0.03928571428571431,
+            "wasserstein_1_normalized": 0.018697530764387876,
+            "mean_relative_error": 0.003930210917358577,
+            "std_relative_error": 0.029868779441602128,
+            "tvd": null
+          },
+          "region": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.02142857142857143
+          },
+          "segment": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.011904761904761939
+          },
+          "is_premium": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.010714285714285697
+          },
+          "y_class": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.007142857142857173
+          }
+        },
+        "ks_mean": 0.024343126760853297,
+        "wasserstein_normalized_mean": 0.03392859628708213,
+        "mean_relative_error_mean": 0.01412794637472069,
+        "std_relative_error_mean": 0.025520206192455465,
+        "tvd_mean": 0.01279761904761906,
+        "pearson_corr_frobenius": 0.8375465889734162,
+        "spearman_corr_frobenius": 0.6483929105003466,
+        "mutual_info_pairs": [
+          {
+            "pair": [
+              "risk_score",
+              "credit_util"
+            ],
+            "mi_real": 0.34779852268618106,
+            "mi_synth": 0.5349921782766884,
+            "abs_delta": 0.18719365559050738
+          },
+          {
+            "pair": [
+              "income",
+              "usage"
+            ],
+            "mi_real": 0.21031860471410635,
+            "mi_synth": 0.291093588329975,
+            "abs_delta": 0.08077498361586866
+          },
+          {
+            "pair": [
+              "age",
+              "tenure_months"
+            ],
+            "mi_real": 0.24611053372250202,
+            "mi_synth": 0.28764064231852515,
+            "abs_delta": 0.04153010859602313
+          },
+          {
+            "pair": [
+              "risk_score",
+              "engagement"
+            ],
+            "mi_real": 0.18785367276977016,
+            "mi_synth": 0.24477839104555832,
+            "abs_delta": 0.056924718275788155
+          },
+          {
+            "pair": [
+              "complaint_count",
+              "y"
+            ],
+            "mi_real": 0.050302406051446535,
+            "mi_synth": 0.0020987873820859093,
+            "abs_delta": 0.048203618669360626
+          }
+        ],
+        "mutual_info_drift_mean": 0.08292541694950958,
+        "missingness": {
+          "age": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "income": {
+            "real": 0.07380952380952381,
+            "synth": 0.0,
+            "abs_delta": 0.07380952380952381
+          },
+          "tenure_months": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "region": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "segment": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "risk_score": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "num_products": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "is_premium": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "usage": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "engagement": {
+            "real": 0.05119047619047619,
+            "synth": 0.0,
+            "abs_delta": 0.05119047619047619
+          },
+          "complaint_count": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "credit_util": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y_class": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          }
+        },
+        "missingness_mae": 0.008928571428571428,
+        "component_scores": {
+          "ks_sim": 0.9756568732391467,
+          "wass_sim": 0.9671847781278878,
+          "mean_sim": 0.9860688718566283,
+          "std_sim": 0.9751148675195715,
+          "tvd_sim": 0.9872023809523809,
+          "pearson_sim": 0.7852297928422817,
+          "spearman_sim": 0.8292986704805487,
+          "mi_sim": 0.9234246277245002,
+          "miss_sim": 0.9910714285714286,
+          "xy_sim": 0.9718099076924362,
+          "marginal_score": 0.9803832000445073,
+          "dependence_score": 0.8459843636824435
+        },
+        "xy_relationship": {
+          "target": "y",
+          "feature_corr": {
+            "age": {
+              "corr_real": 0.005789741256007316,
+              "corr_synth": 0.014550450201064546,
+              "abs_delta": 0.00876070894505723
+            },
+            "income": {
+              "corr_real": -0.06749723066131195,
+              "corr_synth": -0.09410279865404635,
+              "abs_delta": 0.02660556799273439
+            },
+            "tenure_months": {
+              "corr_real": -0.026851656952172214,
+              "corr_synth": -0.03593701122231494,
+              "abs_delta": 0.009085354270142728
+            },
+            "risk_score": {
+              "corr_real": 0.4409159760494315,
+              "corr_synth": 0.4233521581646191,
+              "abs_delta": 0.017563817884812427
+            },
+            "num_products": {
+              "corr_real": -0.06700389503052355,
+              "corr_synth": -0.05894032214237811,
+              "abs_delta": 0.008063572888145437
+            },
+            "is_premium": {
+              "corr_real": -0.02108579627290607,
+              "corr_synth": -0.029359856250858567,
+              "abs_delta": 0.008274059977952497
+            },
+            "usage": {
+              "corr_real": 0.045366865982662534,
+              "corr_synth": -0.00890737591219223,
+              "abs_delta": 0.05427424189485476
+            },
+            "engagement": {
+              "corr_real": -0.2577501640405277,
+              "corr_synth": -0.2360022494071052,
+              "abs_delta": 0.021747914633422488
+            },
+            "complaint_count": {
+              "corr_real": 0.39684153228809227,
+              "corr_synth": 0.096015565767364,
+              "abs_delta": 0.30082596652072824
+            },
+            "credit_util": {
+              "corr_real": 0.3850073672993628,
+              "corr_synth": 0.37527269748218595,
+              "abs_delta": 0.009734669817176855
+            },
+            "y_class": {
+              "corr_real": 0.2703765139997136,
+              "corr_synth": 0.2731516803449672,
+              "abs_delta": 0.002775166345253599
+            }
+          },
+          "corr_abs_delta_mean": 0.042519185560934605,
+          "r2_real": 0.3230927235281724,
+          "r2_synth_with_real_coefs": 0.14938064761721026,
+          "r2_synth_refit": 0.20807185945417084,
+          "r2_delta": 0.17371207591096216,
+          "coef_cosine_similarity": 0.9861390009458071,
+          "n_features": 11,
+          "features": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util",
+            "y_class"
+          ]
+        },
+        "fidelity_score": 0.9366342321950598,
+        "fidelity_score_formula": "fidelity_score = 0.30 * mean(marginal sims) + 0.30 * mean(X-structure sims) + 0.40 * xy_sim when target y is present; otherwise 0.40/0.60 marginal/dep. Marginal: s_ks=1-mean(KS); s_wass=1/(1+mean(W1/std_real)); s_mean=1/(1+mean(mean_rel_err)); s_std=1/(1+mean(std_rel_err)); s_tvd=1-mean(TVD); s_miss=1-mean(|miss_r-miss_s|) if NaNs exist. X-structure: s_pearson=exp(-||P_r-P_s||_F/sqrt(n)); same for Spearman; s_mi=1/(1+mean(|MI_r-MI_s|)). xy_sim = 0.5*(1-mean|corr(X,y)_r-corr(X,y)_s|) + 0.5*clip(OLS coef cosine,0,1). Missing families drop out and remaining weights renormalize. Clipped to [0, 1].",
+        "spearman_corr_frobenius_relative": 0.13584688044279267,
+        "source": "src.metrics.statistical"
+      },
+      "utility": {
+        "regression": {
+          "linear": {
+            "trtr": {
+              "r2": 0.18861641532353612,
+              "rmse": 858.5429483235253,
+              "mae": 263.9912941559348
+            },
+            "tstr": {
+              "r2": 0.13443232984316367,
+              "rmse": 886.7463923794094,
+              "mae": 232.01729126223978
+            },
+            "trts": {
+              "r2": 0.17724401178058846,
+              "rmse": 776.9449477297223,
+              "mae": 326.52297745424346
+            },
+            "tsts": {
+              "r2": 0.208005213025502,
+              "rmse": 762.2823821685414,
+              "mae": 274.50950138344655
+            },
+            "tstr_gap_r2": 0.05418408548037246
+          },
+          "random_forest": {
+            "trtr": {
+              "r2": 0.5444924713834846,
+              "rmse": 643.2750342627901,
+              "mae": 130.53865662804117
+            },
+            "tstr": {
+              "r2": 0.4793171403518296,
+              "rmse": 687.757852402955,
+              "mae": 159.54171310642295
+            },
+            "trts": {
+              "r2": 0.4121903432434383,
+              "rmse": 656.7091679356175,
+              "mae": 197.82105133342245
+            },
+            "tsts": {
+              "r2": 0.35327089409982293,
+              "rmse": 688.8361398566375,
+              "mae": 198.17105364968535
+            },
+            "tstr_gap_r2": 0.06517533103165496
+          },
+          "mean": {
+            "trtr": {
+              "r2": 0.36655444335351034,
+              "rmse": 750.9089912931577,
+              "mae": 197.26497539198797
+            },
+            "tstr": {
+              "r2": 0.30687473509749663,
+              "rmse": 787.2521223911822,
+              "mae": 195.77950218433136
+            },
+            "trts": {
+              "r2": 0.2947171775120134,
+              "rmse": 716.8270578326699,
+              "mae": 262.17201439383297
+            },
+            "tsts": {
+              "r2": 0.28063805356266247,
+              "rmse": 725.5592610125894,
+              "mae": 236.34027751656595
+            },
+            "tstr_gap_r2": 0.05967970825601371
+          },
+          "tstr_gap_r2": 0.05967970825601371
+        },
+        "classification": {
+          "logistic": {
+            "trtr": {
+              "accuracy": 0.7972222222222223,
+              "roc_auc": 0.7759627525252526,
+              "f1": 0.496551724137931
+            },
+            "tstr": {
+              "accuracy": 0.7666666666666667,
+              "roc_auc": 0.7570233585858586,
+              "f1": 0.4473684210526316
+            },
+            "trts": {
+              "accuracy": 0.8333333333333334,
+              "roc_auc": 0.8459595959595959,
+              "f1": 0.6181818181818182
+            },
+            "tsts": {
+              "accuracy": 0.8373015873015873,
+              "roc_auc": 0.8558976865428479,
+              "f1": 0.6306306306306306
+            },
+            "tstr_gap_accuracy": 0.030555555555555558,
+            "tstr_gap_roc_auc": 0.018939393939394034,
+            "tstr_gap_f1": 0.049183303085299446
+          },
+          "random_forest": {
+            "trtr": {
+              "accuracy": 0.7888888888888889,
+              "roc_auc": 0.7879182449494949,
+              "f1": 0.5064935064935064
+            },
+            "tstr": {
+              "accuracy": 0.7888888888888889,
+              "roc_auc": 0.7819996843434343,
+              "f1": 0.4864864864864865
+            },
+            "trts": {
+              "accuracy": 0.8293650793650794,
+              "roc_auc": 0.8368361029651352,
+              "f1": 0.6446280991735537
+            },
+            "tsts": {
+              "accuracy": 0.8253968253968254,
+              "roc_auc": 0.8418051482567612,
+              "f1": 0.6071428571428571
+            },
+            "tstr_gap_accuracy": 0.0,
+            "tstr_gap_roc_auc": 0.005918560606060663,
+            "tstr_gap_f1": 0.020007020007019927
+          },
+          "mean": {
+            "trtr": {
+              "accuracy": 0.7930555555555556,
+              "roc_auc": 0.7819404987373737,
+              "f1": 0.5015226153157187
+            },
+            "tstr": {
+              "accuracy": 0.7777777777777778,
+              "roc_auc": 0.7695115214646464,
+              "f1": 0.466927453769559
+            },
+            "trts": {
+              "accuracy": 0.8313492063492064,
+              "roc_auc": 0.8413978494623655,
+              "f1": 0.631404958677686
+            },
+            "tsts": {
+              "accuracy": 0.8313492063492063,
+              "roc_auc": 0.8488514173998045,
+              "f1": 0.6188867438867438
+            },
+            "tstr_gap_accuracy": 0.015277777777777779,
+            "tstr_gap_roc_auc": 0.012428977272727348,
+            "tstr_gap_f1": 0.034595161546159686
+          }
+        },
+        "tstr_gap_r2": 0.05967970825601371,
+        "pred_agreement": {
+          "paired": false,
+          "regression": {
+            "linear": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 241.65803015868897,
+              "pred_mean_synth": 229.37672346385023,
+              "pred_std_real": 404.73603766727103,
+              "pred_std_synth": 382.24693039358726,
+              "ks_stat": 0.045238095238095244,
+              "ks_pvalue": 0.3565773988703552,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 227.70456930992694,
+              "pred_mean_synth": 251.5571924994069,
+              "pred_std_real": 524.493030104612,
+              "pred_std_synth": 545.7375761818236,
+              "ks_stat": 0.055952380952380976,
+              "ks_pvalue": 0.1441659370658605,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          },
+          "classification": {
+            "logistic": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.2658139213631528,
+              "pred_mean_synth": 0.26277302950371256,
+              "pred_std_real": 0.22472767440691674,
+              "pred_std_synth": 0.22776024942521178,
+              "ks_stat": 0.0511904761904762,
+              "ks_pvalue": 0.22112294257273854,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.26038560834417324,
+              "pred_mean_synth": 0.2666468051374976,
+              "pred_std_real": 0.24241062694366236,
+              "pred_std_synth": 0.22020495546057825,
+              "ks_stat": 0.09285714285714286,
+              "ks_pvalue": 0.0014218074525869622,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          }
+        },
+        "utility_score": 0.9532500953076068,
+        "utility_score_formula": "utility_score = clip(w-mean of available terms, 0, 1): 0.50 * mean_m (1 - clip(|R2_TRTR - R2_TSTR|, 0, 1))  [regression TSTR]; 0.20 * mean_m (1 - clip(|AUC_TRTR - AUC_TSTR|, 0, 1))  [clf TSTR, fallback to accuracy then f1]; 0.30 * agreement_score. agreement_score = 0.55 * clip(corr, 0, 1) + 0.45 * (1 - KS) when paired (corr = mean of clip(spearman,0,1) and clip(pearson,0,1)); otherwise 0.70 * (1 - KS) + 0.30 * moment_score, where moment_score = 1 - 0.5 * |\u03bcr-\u03bcs| / (|\u03bcr|+|\u03bcs|+\u03c3r+\u03c3s+\u03b5) - 0.5 * |\u03c3r-\u03c3s| / (\u03c3r+\u03c3s+\u03b5). Per-task agreement is averaged over the fitted frozen models. Missing families are dropped and the remaining weights renormalized.",
+        "meta": {
+          "n_real": 1200,
+          "n_synth": 840,
+          "n_real_train": 840,
+          "n_real_test": 360,
+          "n_synth_train": 588,
+          "n_synth_test": 252,
+          "test_size": 0.3,
+          "seed": 42,
+          "target_reg": "y",
+          "target_clf": "y_class",
+          "feature_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "region",
+            "segment",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "numeric_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "categorical_cols": [
+            "region",
+            "segment"
+          ],
+          "paired_rows": false,
+          "protocol": {
+            "trtr": "train real train \u2192 test real holdout",
+            "tstr": "train synth train \u2192 test the same real holdout",
+            "trts": "train real train \u2192 test synth holdout",
+            "tsts": "train synth train \u2192 test synth holdout"
+          }
+        },
+        "source": "src.metrics.utility"
+      },
+      "fidelity_score": 0.9366342321950598,
+      "utility_score": 0.9532500953076068,
+      "combined_score": 1.8898843275026667,
+      "gates": {
+        "fidelity_score_ge_0.70": true,
+        "corr_frobenius_rel_le_0.30": true,
+        "tstr_r2_gap_le_0.08": true,
+        "tstr_auc_gap_le_0.05": true,
+        "r2_gap": 0.05967970825601371,
+        "auc_gap": 0.012428977272727293,
+        "corr_frobenius_relative": 0.13584688044279267,
+        "passes": true
+      },
+      "tstr_gap_r2": 0.05967970825601371,
+      "tstr_r2_linear": 0.13443232984316367,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.4793171403518296,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "name": "mixture",
+      "role": "method",
+      "status": "ok",
+      "error": null,
+      "n_synthetic": 840,
+      "elapsed_sec": 1.4569313000000648,
+      "is_negative_control": false,
+      "synth_csv": "/workspace/data/synthetic_mixture.csv",
+      "fidelity": {
+        "n_rows_real": 840,
+        "n_rows_synth": 840,
+        "n_cols_compared": 14,
+        "columns_compared": [
+          "age",
+          "income",
+          "tenure_months",
+          "region",
+          "segment",
+          "risk_score",
+          "num_products",
+          "is_premium",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y",
+          "y_class"
+        ],
+        "numeric_columns": [
+          "age",
+          "income",
+          "tenure_months",
+          "risk_score",
+          "num_products",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y"
+        ],
+        "categorical_columns": [
+          "region",
+          "segment",
+          "is_premium",
+          "y_class"
+        ],
+        "per_column": {
+          "age": {
+            "type": "numeric",
+            "ks_statistic": 0.07023809523809524,
+            "wasserstein_1_normalized": 0.12703372599101592,
+            "mean_relative_error": 0.0100470358413959,
+            "std_relative_error": 0.14634091036327854,
+            "tvd": null
+          },
+          "income": {
+            "type": "numeric",
+            "ks_statistic": 0.07405741216795192,
+            "wasserstein_1_normalized": 0.12314476963632666,
+            "mean_relative_error": 0.011325030757865631,
+            "std_relative_error": 0.13688968380162192,
+            "tvd": null
+          },
+          "tenure_months": {
+            "type": "numeric",
+            "ks_statistic": 0.10714285714285715,
+            "wasserstein_1_normalized": 0.16940392215832792,
+            "mean_relative_error": 0.041160929662670626,
+            "std_relative_error": 0.14895778996633488,
+            "tvd": null
+          },
+          "risk_score": {
+            "type": "numeric",
+            "ks_statistic": 0.05952380952380952,
+            "wasserstein_1_normalized": 0.0964205157650695,
+            "mean_relative_error": 0.009268158016585839,
+            "std_relative_error": 0.11862324412354244,
+            "tvd": null
+          },
+          "num_products": {
+            "type": "numeric",
+            "ks_statistic": 0.11904761904761907,
+            "wasserstein_1_normalized": 0.15973744876254636,
+            "mean_relative_error": 0.0728155339805455,
+            "std_relative_error": 0.12916202293428342,
+            "tvd": null
+          },
+          "usage": {
+            "type": "numeric",
+            "ks_statistic": 0.10238095238095235,
+            "wasserstein_1_normalized": 0.1352899733560576,
+            "mean_relative_error": 0.023907815705785748,
+            "std_relative_error": 0.15620711306291585,
+            "tvd": null
+          },
+          "engagement": {
+            "type": "numeric",
+            "ks_statistic": 0.06558224293481518,
+            "wasserstein_1_normalized": 0.11135310746245039,
+            "mean_relative_error": 0.005970700289522131,
+            "std_relative_error": 0.1391622912588454,
+            "tvd": null
+          },
+          "complaint_count": {
+            "type": "numeric",
+            "ks_statistic": 0.1345238095238095,
+            "wasserstein_1_normalized": 0.18178735444852967,
+            "mean_relative_error": 0.01952580195255725,
+            "std_relative_error": 0.3477894825744778,
+            "tvd": null
+          },
+          "credit_util": {
+            "type": "numeric",
+            "ks_statistic": 0.0654761904761905,
+            "wasserstein_1_normalized": 0.11625715113649682,
+            "mean_relative_error": 0.014833765593818656,
+            "std_relative_error": 0.09857900691216204,
+            "tvd": null
+          },
+          "y": {
+            "type": "numeric",
+            "ks_statistic": 0.17500000000000002,
+            "wasserstein_1_normalized": 0.1515585403041562,
+            "mean_relative_error": 0.1260845823518027,
+            "std_relative_error": 0.4302385394550233,
+            "tvd": null
+          },
+          "region": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.03214285714285712
+          },
+          "segment": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.027380952380952388
+          },
+          "is_premium": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.019047619047619015
+          },
+          "y_class": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0011904761904761862
+          }
+        },
+        "ks_mean": 0.09729729884361005,
+        "wasserstein_normalized_mean": 0.1371986509020977,
+        "mean_relative_error_mean": 0.03349393541525499,
+        "std_relative_error_mean": 0.18519500844524858,
+        "tvd_mean": 0.019940476190476175,
+        "pearson_corr_frobenius": 0.5718905344911249,
+        "spearman_corr_frobenius": 0.6060104900484399,
+        "mutual_info_pairs": [
+          {
+            "pair": [
+              "risk_score",
+              "credit_util"
+            ],
+            "mi_real": 0.34779852268618106,
+            "mi_synth": 0.3805173784852913,
+            "abs_delta": 0.03271885579911027
+          },
+          {
+            "pair": [
+              "income",
+              "usage"
+            ],
+            "mi_real": 0.21031860471410635,
+            "mi_synth": 0.23060378812406102,
+            "abs_delta": 0.020285183409954666
+          },
+          {
+            "pair": [
+              "age",
+              "tenure_months"
+            ],
+            "mi_real": 0.24611053372250202,
+            "mi_synth": 0.21630488392746505,
+            "abs_delta": 0.02980564979503697
+          },
+          {
+            "pair": [
+              "risk_score",
+              "engagement"
+            ],
+            "mi_real": 0.18785367276977016,
+            "mi_synth": 0.20925948816063356,
+            "abs_delta": 0.021405815390863392
+          },
+          {
+            "pair": [
+              "complaint_count",
+              "y"
+            ],
+            "mi_real": 0.050302406051446535,
+            "mi_synth": 0.031165310723777484,
+            "abs_delta": 0.01913709532766905
+          }
+        ],
+        "mutual_info_drift_mean": 0.02467051994452687,
+        "missingness": {
+          "age": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "income": {
+            "real": 0.07380952380952381,
+            "synth": 0.0,
+            "abs_delta": 0.07380952380952381
+          },
+          "tenure_months": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "region": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "segment": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "risk_score": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "num_products": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "is_premium": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "usage": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "engagement": {
+            "real": 0.05119047619047619,
+            "synth": 0.0,
+            "abs_delta": 0.05119047619047619
+          },
+          "complaint_count": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "credit_util": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y_class": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          }
+        },
+        "missingness_mae": 0.008928571428571428,
+        "component_scores": {
+          "ks_sim": 0.90270270115639,
+          "wass_sim": 0.8793538395483823,
+          "mean_sim": 0.9675915510797872,
+          "std_sim": 0.8437430067409841,
+          "tvd_sim": 0.9800595238095238,
+          "pearson_sim": 0.8478169078828899,
+          "spearman_sim": 0.8395072555645211,
+          "mi_sim": 0.975923460796098,
+          "miss_sim": 0.9910714285714286,
+          "xy_sim": 0.9674708610570102,
+          "marginal_score": 0.9274203418177493,
+          "dependence_score": 0.8877492080811696
+        },
+        "xy_relationship": {
+          "target": "y",
+          "feature_corr": {
+            "age": {
+              "corr_real": 0.005789741256007316,
+              "corr_synth": -0.046178278544538716,
+              "abs_delta": 0.05196801980054603
+            },
+            "income": {
+              "corr_real": -0.06749723066131195,
+              "corr_synth": -0.0880119232489113,
+              "abs_delta": 0.020514692587599345
+            },
+            "tenure_months": {
+              "corr_real": -0.026851656952172214,
+              "corr_synth": -0.0640885971387997,
+              "abs_delta": 0.03723694018662749
+            },
+            "risk_score": {
+              "corr_real": 0.4409159760494315,
+              "corr_synth": 0.4919378479681892,
+              "abs_delta": 0.05102187191875768
+            },
+            "num_products": {
+              "corr_real": -0.06700389503052355,
+              "corr_synth": -0.07368836374219868,
+              "abs_delta": 0.0066844687116751345
+            },
+            "is_premium": {
+              "corr_real": -0.02108579627290607,
+              "corr_synth": -0.029991240961300958,
+              "abs_delta": 0.008905444688394888
+            },
+            "usage": {
+              "corr_real": 0.045366865982662534,
+              "corr_synth": -0.05383045714536529,
+              "abs_delta": 0.09919732312802781
+            },
+            "engagement": {
+              "corr_real": -0.2577501640405277,
+              "corr_synth": -0.2752479734831126,
+              "abs_delta": 0.01749780944258489
+            },
+            "complaint_count": {
+              "corr_real": 0.39684153228809227,
+              "corr_synth": 0.4096969058885317,
+              "abs_delta": 0.012855373600439424
+            },
+            "credit_util": {
+              "corr_real": 0.3850073672993628,
+              "corr_synth": 0.41657255932855525,
+              "abs_delta": 0.031565192029192446
+            },
+            "y_class": {
+              "corr_real": 0.2703765139997136,
+              "corr_synth": 0.3236593019392865,
+              "abs_delta": 0.05328278793957292
+            }
+          },
+          "corr_abs_delta_mean": 0.035520902184856186,
+          "r2_real": 0.3230927235281724,
+          "r2_synth_with_real_coefs": 0.3401102422517276,
+          "r2_synth_refit": 0.3709720002675939,
+          "r2_delta": -0.01701751872355517,
+          "coef_cosine_similarity": 0.9704626242988765,
+          "n_features": 11,
+          "features": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util",
+            "y_class"
+          ]
+        },
+        "fidelity_score": 0.9315392093924798,
+        "fidelity_score_formula": "fidelity_score = 0.30 * mean(marginal sims) + 0.30 * mean(X-structure sims) + 0.40 * xy_sim when target y is present; otherwise 0.40/0.60 marginal/dep. Marginal: s_ks=1-mean(KS); s_wass=1/(1+mean(W1/std_real)); s_mean=1/(1+mean(mean_rel_err)); s_std=1/(1+mean(std_rel_err)); s_tvd=1-mean(TVD); s_miss=1-mean(|miss_r-miss_s|) if NaNs exist. X-structure: s_pearson=exp(-||P_r-P_s||_F/sqrt(n)); same for Spearman; s_mi=1/(1+mean(|MI_r-MI_s|)). xy_sim = 0.5*(1-mean|corr(X,y)_r-corr(X,y)_s|) + 0.5*clip(OLS coef cosine,0,1). Missing families drop out and remaining weights renormalize. Clipped to [0, 1].",
+        "spearman_corr_frobenius_relative": 0.12298754778385967,
+        "source": "src.metrics.statistical"
+      },
+      "utility": {
+        "regression": {
+          "linear": {
+            "trtr": {
+              "r2": 0.18861641532353612,
+              "rmse": 858.5429483235253,
+              "mae": 263.9912941559348
+            },
+            "tstr": {
+              "r2": 0.15016933201166793,
+              "rmse": 878.6483881313916,
+              "mae": 219.6218782261022
+            },
+            "trts": {
+              "r2": 0.41146513473497726,
+              "rmse": 268.8624366544994,
+              "mae": 194.31081996394045
+            },
+            "tsts": {
+              "r2": 0.4639393406023441,
+              "rmse": 256.5966608064196,
+              "mae": 163.03699748896207
+            },
+            "tstr_gap_r2": 0.03844708331186819
+          },
+          "random_forest": {
+            "trtr": {
+              "r2": 0.5444924713834846,
+              "rmse": 643.2750342627901,
+              "mae": 130.53865662804117
+            },
+            "tstr": {
+              "r2": 0.22555561589815432,
+              "rmse": 838.772212379499,
+              "mae": 166.35896195439645
+            },
+            "trts": {
+              "r2": 0.17540024100200902,
+              "rmse": 318.24796411196974,
+              "mae": 155.88440947183705
+            },
+            "tsts": {
+              "r2": 0.5167912431531367,
+              "rmse": 243.61915379765168,
+              "mae": 143.01217880504353
+            },
+            "tstr_gap_r2": 0.31893685548533024
+          },
+          "mean": {
+            "trtr": {
+              "r2": 0.36655444335351034,
+              "rmse": 750.9089912931577,
+              "mae": 197.26497539198797
+            },
+            "tstr": {
+              "r2": 0.18786247395491112,
+              "rmse": 858.7103002554453,
+              "mae": 192.99042009024933
+            },
+            "trts": {
+              "r2": 0.29343268786849314,
+              "rmse": 293.5552003832346,
+              "mae": 175.09761471788875
+            },
+            "tsts": {
+              "r2": 0.4903652918777404,
+              "rmse": 250.10790730203564,
+              "mae": 153.02458814700282
+            },
+            "tstr_gap_r2": 0.17869196939859922
+          },
+          "tstr_gap_r2": 0.17869196939859922
+        },
+        "classification": {
+          "logistic": {
+            "trtr": {
+              "accuracy": 0.7972222222222223,
+              "roc_auc": 0.7759627525252526,
+              "f1": 0.496551724137931
+            },
+            "tstr": {
+              "accuracy": 0.7916666666666666,
+              "roc_auc": 0.7768702651515151,
+              "f1": 0.5161290322580645
+            },
+            "trts": {
+              "accuracy": 0.8134920634920635,
+              "roc_auc": 0.7928388746803069,
+              "f1": 0.5607476635514018
+            },
+            "tsts": {
+              "accuracy": 0.8134920634920635,
+              "roc_auc": 0.7964354219948849,
+              "f1": 0.591304347826087
+            },
+            "tstr_gap_accuracy": 0.005555555555555647,
+            "tstr_gap_roc_auc": -0.000907512626262541,
+            "tstr_gap_f1": -0.019577308120133474
+          },
+          "random_forest": {
+            "trtr": {
+              "accuracy": 0.7888888888888889,
+              "roc_auc": 0.7879182449494949,
+              "f1": 0.5064935064935064
+            },
+            "tstr": {
+              "accuracy": 0.7805555555555556,
+              "roc_auc": 0.7700441919191918,
+              "f1": 0.5153374233128835
+            },
+            "trts": {
+              "accuracy": 0.8095238095238095,
+              "roc_auc": 0.7623881074168798,
+              "f1": 0.5384615384615384
+            },
+            "tsts": {
+              "accuracy": 0.8253968253968254,
+              "roc_auc": 0.8063459079283888,
+              "f1": 0.6140350877192983
+            },
+            "tstr_gap_accuracy": 0.008333333333333304,
+            "tstr_gap_roc_auc": 0.017874053030303094,
+            "tstr_gap_f1": -0.008843916819377018
+          },
+          "mean": {
+            "trtr": {
+              "accuracy": 0.7930555555555556,
+              "roc_auc": 0.7819404987373737,
+              "f1": 0.5015226153157187
+            },
+            "tstr": {
+              "accuracy": 0.7861111111111111,
+              "roc_auc": 0.7734572285353535,
+              "f1": 0.515733227785474
+            },
+            "trts": {
+              "accuracy": 0.8115079365079365,
+              "roc_auc": 0.7776134910485933,
+              "f1": 0.5496046010064701
+            },
+            "tsts": {
+              "accuracy": 0.8194444444444444,
+              "roc_auc": 0.8013906649616369,
+              "f1": 0.6026697177726926
+            },
+            "tstr_gap_accuracy": 0.006944444444444475,
+            "tstr_gap_roc_auc": 0.008483270202020277,
+            "tstr_gap_f1": -0.014210612469755246
+          }
+        },
+        "tstr_gap_r2": 0.17869196939859922,
+        "pred_agreement": {
+          "paired": false,
+          "regression": {
+            "linear": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 241.65803015868897,
+              "pred_mean_synth": 253.268694584215,
+              "pred_std_real": 404.73603766727103,
+              "pred_std_synth": 313.9838111931904,
+              "ks_stat": 0.07738095238095238,
+              "ks_pvalue": 0.013054206218996531,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 227.70456930992694,
+              "pred_mean_synth": 196.0837321448322,
+              "pred_std_real": 524.493030104612,
+              "pred_std_synth": 336.3691553653994,
+              "ks_stat": 0.04285714285714287,
+              "ks_pvalue": 0.4235712627344867,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          },
+          "classification": {
+            "logistic": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.2658139213631528,
+              "pred_mean_synth": 0.26864787475354074,
+              "pred_std_real": 0.22472767440691674,
+              "pred_std_synth": 0.21481273135707016,
+              "ks_stat": 0.03928571428571429,
+              "ks_pvalue": 0.5361036300935536,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.26038560834417324,
+              "pred_mean_synth": 0.25178388671118157,
+              "pred_std_real": 0.24241062694366236,
+              "pred_std_synth": 0.21884840535508332,
+              "ks_stat": 0.07023809523809527,
+              "ks_pvalue": 0.03168707062794495,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          }
+        },
+        "utility_score": 0.891670743442513,
+        "utility_score_formula": "utility_score = clip(w-mean of available terms, 0, 1): 0.50 * mean_m (1 - clip(|R2_TRTR - R2_TSTR|, 0, 1))  [regression TSTR]; 0.20 * mean_m (1 - clip(|AUC_TRTR - AUC_TSTR|, 0, 1))  [clf TSTR, fallback to accuracy then f1]; 0.30 * agreement_score. agreement_score = 0.55 * clip(corr, 0, 1) + 0.45 * (1 - KS) when paired (corr = mean of clip(spearman,0,1) and clip(pearson,0,1)); otherwise 0.70 * (1 - KS) + 0.30 * moment_score, where moment_score = 1 - 0.5 * |\u03bcr-\u03bcs| / (|\u03bcr|+|\u03bcs|+\u03c3r+\u03c3s+\u03b5) - 0.5 * |\u03c3r-\u03c3s| / (\u03c3r+\u03c3s+\u03b5). Per-task agreement is averaged over the fitted frozen models. Missing families are dropped and the remaining weights renormalized.",
+        "meta": {
+          "n_real": 1200,
+          "n_synth": 840,
+          "n_real_train": 840,
+          "n_real_test": 360,
+          "n_synth_train": 588,
+          "n_synth_test": 252,
+          "test_size": 0.3,
+          "seed": 42,
+          "target_reg": "y",
+          "target_clf": "y_class",
+          "feature_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "region",
+            "segment",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "numeric_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "categorical_cols": [
+            "region",
+            "segment"
+          ],
+          "paired_rows": false,
+          "protocol": {
+            "trtr": "train real train \u2192 test real holdout",
+            "tstr": "train synth train \u2192 test the same real holdout",
+            "trts": "train real train \u2192 test synth holdout",
+            "tsts": "train synth train \u2192 test synth holdout"
+          }
+        },
+        "source": "src.metrics.utility"
+      },
+      "fidelity_score": 0.9315392093924798,
+      "utility_score": 0.891670743442513,
+      "combined_score": 1.8232099528349928,
+      "gates": {
+        "fidelity_score_ge_0.70": true,
+        "corr_frobenius_rel_le_0.30": true,
+        "tstr_r2_gap_le_0.08": false,
+        "tstr_auc_gap_le_0.05": true,
+        "r2_gap": 0.17869196939859922,
+        "auc_gap": 0.008483270202020221,
+        "corr_frobenius_relative": 0.12298754778385967,
+        "passes": false
+      },
+      "tstr_gap_r2": 0.17869196939859922,
+      "tstr_r2_linear": 0.15016933201166793,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.22555561589815432,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "name": "hybrid",
+      "role": "method",
+      "status": "ok",
+      "error": null,
+      "n_synthetic": 840,
+      "elapsed_sec": 1.120084777000102,
+      "is_negative_control": false,
+      "synth_csv": "/workspace/data/synthetic_hybrid.csv",
+      "fidelity": {
+        "n_rows_real": 840,
+        "n_rows_synth": 840,
+        "n_cols_compared": 14,
+        "columns_compared": [
+          "age",
+          "income",
+          "tenure_months",
+          "region",
+          "segment",
+          "risk_score",
+          "num_products",
+          "is_premium",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y",
+          "y_class"
+        ],
+        "numeric_columns": [
+          "age",
+          "income",
+          "tenure_months",
+          "risk_score",
+          "num_products",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y"
+        ],
+        "categorical_columns": [
+          "region",
+          "segment",
+          "is_premium",
+          "y_class"
+        ],
+        "per_column": {
+          "age": {
+            "type": "numeric",
+            "ks_statistic": 0.02857142857142858,
+            "wasserstein_1_normalized": 0.038636218898167554,
+            "mean_relative_error": 0.0005883275277363876,
+            "std_relative_error": 0.025983535330938265,
+            "tvd": null
+          },
+          "income": {
+            "type": "numeric",
+            "ks_statistic": 0.023078198855626564,
+            "wasserstein_1_normalized": 0.04055809582184654,
+            "mean_relative_error": 0.02451177907240478,
+            "std_relative_error": 0.04614437012325695,
+            "tvd": null
+          },
+          "tenure_months": {
+            "type": "numeric",
+            "ks_statistic": 0.04761904761904763,
+            "wasserstein_1_normalized": 0.0739023779678543,
+            "mean_relative_error": 0.035149519470075795,
+            "std_relative_error": 0.03167797947919676,
+            "tvd": null
+          },
+          "risk_score": {
+            "type": "numeric",
+            "ks_statistic": 0.04166666666666663,
+            "wasserstein_1_normalized": 0.04630199013440054,
+            "mean_relative_error": 0.005618336902064117,
+            "std_relative_error": 0.013935766435545591,
+            "tvd": null
+          },
+          "num_products": {
+            "type": "numeric",
+            "ks_statistic": 0.008333333333333304,
+            "wasserstein_1_normalized": 0.022925281998328398,
+            "mean_relative_error": 0.007888349514559058,
+            "std_relative_error": 0.030839565349010088,
+            "tvd": null
+          },
+          "usage": {
+            "type": "numeric",
+            "ks_statistic": 0.023809523809523836,
+            "wasserstein_1_normalized": 0.03594533905147312,
+            "mean_relative_error": 0.023759488207506983,
+            "std_relative_error": 0.05787726970667067,
+            "tvd": null
+          },
+          "engagement": {
+            "type": "numeric",
+            "ks_statistic": 0.0263362922680751,
+            "wasserstein_1_normalized": 0.031125456056705546,
+            "mean_relative_error": 0.0038909585636010273,
+            "std_relative_error": 0.008664941710497063,
+            "tvd": null
+          },
+          "complaint_count": {
+            "type": "numeric",
+            "ks_statistic": 0.008333333333333415,
+            "wasserstein_1_normalized": 0.0340851289590992,
+            "mean_relative_error": 0.04602510460245651,
+            "std_relative_error": 0.10529343890638612,
+            "tvd": null
+          },
+          "credit_util": {
+            "type": "numeric",
+            "ks_statistic": 0.03452380952380954,
+            "wasserstein_1_normalized": 0.05040583693940222,
+            "mean_relative_error": 0.021265052784195333,
+            "std_relative_error": 0.013511285715144985,
+            "tvd": null
+          },
+          "y": {
+            "type": "numeric",
+            "ks_statistic": 0.03809523809523807,
+            "wasserstein_1_normalized": 0.07656880695471192,
+            "mean_relative_error": 0.2033502574622963,
+            "std_relative_error": 0.5613166394217344,
+            "tvd": null
+          },
+          "region": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.017857142857142856
+          },
+          "segment": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.007142857142857145
+          },
+          "is_premium": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0035714285714285657
+          },
+          "y_class": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0011904761904761862
+          }
+        },
+        "ks_mean": 0.02803668720760827,
+        "wasserstein_normalized_mean": 0.045045453278198935,
+        "mean_relative_error_mean": 0.03720471741068963,
+        "std_relative_error_mean": 0.08952447921783808,
+        "tvd_mean": 0.007440476190476188,
+        "pearson_corr_frobenius": 1.733780285315501,
+        "spearman_corr_frobenius": 1.4846983677567296,
+        "mutual_info_pairs": [
+          {
+            "pair": [
+              "risk_score",
+              "credit_util"
+            ],
+            "mi_real": 0.34779852268618106,
+            "mi_synth": 0.35103677606303973,
+            "abs_delta": 0.0032382533768586796
+          },
+          {
+            "pair": [
+              "income",
+              "usage"
+            ],
+            "mi_real": 0.21031860471410635,
+            "mi_synth": 0.2054800536143695,
+            "abs_delta": 0.004838551099736854
+          },
+          {
+            "pair": [
+              "age",
+              "tenure_months"
+            ],
+            "mi_real": 0.24611053372250202,
+            "mi_synth": 0.17138746966167462,
+            "abs_delta": 0.0747230640608274
+          },
+          {
+            "pair": [
+              "risk_score",
+              "engagement"
+            ],
+            "mi_real": 0.18785367276977016,
+            "mi_synth": 0.16706922493420295,
+            "abs_delta": 0.02078444783556721
+          },
+          {
+            "pair": [
+              "complaint_count",
+              "y"
+            ],
+            "mi_real": 0.050302406051446535,
+            "mi_synth": 0.0,
+            "abs_delta": 0.050302406051446535
+          }
+        ],
+        "mutual_info_drift_mean": 0.030777344484887337,
+        "missingness": {
+          "age": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "income": {
+            "real": 0.07380952380952381,
+            "synth": 0.07738095238095238,
+            "abs_delta": 0.0035714285714285726
+          },
+          "tenure_months": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "region": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "segment": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "risk_score": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "num_products": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "is_premium": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "usage": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "engagement": {
+            "real": 0.05119047619047619,
+            "synth": 0.04523809523809524,
+            "abs_delta": 0.005952380952380952
+          },
+          "complaint_count": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "credit_util": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y_class": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          }
+        },
+        "missingness_mae": 0.0006802721088435375,
+        "component_scores": {
+          "ks_sim": 0.9719633127923917,
+          "wass_sim": 0.956896177925184,
+          "mean_sim": 0.964129822410017,
+          "std_sim": 0.9178316036716248,
+          "tvd_sim": 0.9925595238095238,
+          "pearson_sim": 0.6062279204795035,
+          "spearman_sim": 0.6514233759052479,
+          "mi_sim": 0.9701416172468674,
+          "miss_sim": 0.9993197278911564,
+          "xy_sim": 0.9408142763044269,
+          "marginal_score": 0.9671166947499829,
+          "dependence_score": 0.7425976378772062
+        },
+        "xy_relationship": {
+          "target": "y",
+          "feature_corr": {
+            "age": {
+              "corr_real": 0.005789741256007316,
+              "corr_synth": 0.0012098208410459231,
+              "abs_delta": 0.004579920414961393
+            },
+            "income": {
+              "corr_real": -0.06749723066131195,
+              "corr_synth": -0.19410520936206796,
+              "abs_delta": 0.12660797870075602
+            },
+            "tenure_months": {
+              "corr_real": -0.026851656952172214,
+              "corr_synth": -0.00721932675045864,
+              "abs_delta": 0.019632330201713573
+            },
+            "risk_score": {
+              "corr_real": 0.4409159760494315,
+              "corr_synth": 0.6091208156449984,
+              "abs_delta": 0.16820483959556692
+            },
+            "num_products": {
+              "corr_real": -0.06700389503052355,
+              "corr_synth": -0.0706651235189944,
+              "abs_delta": 0.0036612284884708496
+            },
+            "is_premium": {
+              "corr_real": -0.02108579627290607,
+              "corr_synth": 0.04215896275605405,
+              "abs_delta": 0.06324475902896012
+            },
+            "usage": {
+              "corr_real": 0.045366865982662534,
+              "corr_synth": -0.10174741173205111,
+              "abs_delta": 0.14711427771471364
+            },
+            "engagement": {
+              "corr_real": -0.2577501640405277,
+              "corr_synth": -0.3074315734903151,
+              "abs_delta": 0.049681409449787384
+            },
+            "complaint_count": {
+              "corr_real": 0.39684153228809227,
+              "corr_synth": 0.08683917523224385,
+              "abs_delta": 0.31000235705584844
+            },
+            "credit_util": {
+              "corr_real": 0.3850073672993628,
+              "corr_synth": 0.5177051507384034,
+              "abs_delta": 0.1326977834390406
+            },
+            "y_class": {
+              "corr_real": 0.2703765139997136,
+              "corr_synth": 0.27207104432733986,
+              "abs_delta": 0.0016945303276262869
+            }
+          },
+          "corr_abs_delta_mean": 0.09337467403794958,
+          "r2_real": 0.3230927235281724,
+          "r2_synth_with_real_coefs": -0.12303846743055624,
+          "r2_synth_refit": 0.4033709973993119,
+          "r2_delta": 0.44613119095872866,
+          "coef_cosine_similarity": 0.9750032266468033,
+          "n_features": 11,
+          "features": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util",
+            "y_class"
+          ]
+        },
+        "fidelity_score": 0.8892400103099275,
+        "fidelity_score_formula": "fidelity_score = 0.30 * mean(marginal sims) + 0.30 * mean(X-structure sims) + 0.40 * xy_sim when target y is present; otherwise 0.40/0.60 marginal/dep. Marginal: s_ks=1-mean(KS); s_wass=1/(1+mean(W1/std_real)); s_mean=1/(1+mean(mean_rel_err)); s_std=1/(1+mean(std_rel_err)); s_tvd=1-mean(TVD); s_miss=1-mean(|miss_r-miss_s|) if NaNs exist. X-structure: s_pearson=exp(-||P_r-P_s||_F/sqrt(n)); same for Spearman; s_mi=1/(1+mean(|MI_r-MI_s|)). xy_sim = 0.5*(1-mean|corr(X,y)_r-corr(X,y)_s|) + 0.5*clip(OLS coef cosine,0,1). Missing families drop out and remaining weights renormalize. Clipped to [0, 1].",
+        "spearman_corr_frobenius_relative": 0.08078550443379107,
+        "source": "src.metrics.statistical"
+      },
+      "utility": {
+        "regression": {
+          "linear": {
+            "trtr": {
+              "r2": 0.18861641532353612,
+              "rmse": 858.5429483235253,
+              "mae": 263.9912941559348
+            },
+            "tstr": {
+              "r2": 0.10163196574457933,
+              "rmse": 903.3916293179643,
+              "mae": 198.4739186033862
+            },
+            "trts": {
+              "r2": -0.14373013047578453,
+              "rmse": 356.2501252300354,
+              "mae": 253.7736161503595
+            },
+            "tsts": {
+              "r2": 0.3588253702836832,
+              "rmse": 266.73586192349063,
+              "mae": 154.7922637965025
+            },
+            "tstr_gap_r2": 0.08698444957895679
+          },
+          "random_forest": {
+            "trtr": {
+              "r2": 0.5444924713834846,
+              "rmse": 643.2750342627901,
+              "mae": 130.53865662804117
+            },
+            "tstr": {
+              "r2": 0.2623915017563345,
+              "rmse": 818.5814009416094,
+              "mae": 145.271230632475
+            },
+            "trts": {
+              "r2": 0.15542754253082247,
+              "rmse": 306.13409561548696,
+              "mae": 110.26580226924624
+            },
+            "tsts": {
+              "r2": 0.7830959653727035,
+              "rmse": 155.14116905358395,
+              "mae": 73.68326487237286
+            },
+            "tstr_gap_r2": 0.28210096962715003
+          },
+          "mean": {
+            "trtr": {
+              "r2": 0.36655444335351034,
+              "rmse": 750.9089912931577,
+              "mae": 197.26497539198797
+            },
+            "tstr": {
+              "r2": 0.18201173375045693,
+              "rmse": 860.9865151297869,
+              "mae": 171.8725746179306
+            },
+            "trts": {
+              "r2": 0.005848706027518968,
+              "rmse": 331.1921104227612,
+              "mae": 182.01970920980287
+            },
+            "tsts": {
+              "r2": 0.5709606678281933,
+              "rmse": 210.9385154885373,
+              "mae": 114.23776433443768
+            },
+            "tstr_gap_r2": 0.1845427096030534
+          },
+          "tstr_gap_r2": 0.1845427096030534
+        },
+        "classification": {
+          "logistic": {
+            "trtr": {
+              "accuracy": 0.7972222222222223,
+              "roc_auc": 0.7759627525252526,
+              "f1": 0.496551724137931
+            },
+            "tstr": {
+              "accuracy": 0.8027777777777778,
+              "roc_auc": 0.7761600378787878,
+              "f1": 0.46616541353383456
+            },
+            "trts": {
+              "accuracy": 0.7658730158730159,
+              "roc_auc": 0.7864461476401775,
+              "f1": 0.49572649572649574
+            },
+            "tsts": {
+              "accuracy": 0.7658730158730159,
+              "roc_auc": 0.7856393707139975,
+              "f1": 0.40404040404040403
+            },
+            "tstr_gap_accuracy": -0.005555555555555536,
+            "tstr_gap_roc_auc": -0.00019728535353524812,
+            "tstr_gap_f1": 0.030386310604096467
+          },
+          "random_forest": {
+            "trtr": {
+              "accuracy": 0.7888888888888889,
+              "roc_auc": 0.7879182449494949,
+              "f1": 0.5064935064935064
+            },
+            "tstr": {
+              "accuracy": 0.7583333333333333,
+              "roc_auc": 0.7643623737373738,
+              "f1": 0.3829787234042553
+            },
+            "trts": {
+              "accuracy": 0.7817460317460317,
+              "roc_auc": 0.7687777329568375,
+              "f1": 0.5299145299145299
+            },
+            "tsts": {
+              "accuracy": 0.7698412698412699,
+              "roc_auc": 0.7478822105687777,
+              "f1": 0.4528301886792453
+            },
+            "tstr_gap_accuracy": 0.030555555555555558,
+            "tstr_gap_roc_auc": 0.023555871212121104,
+            "tstr_gap_f1": 0.12351478308925112
+          },
+          "mean": {
+            "trtr": {
+              "accuracy": 0.7930555555555556,
+              "roc_auc": 0.7819404987373737,
+              "f1": 0.5015226153157187
+            },
+            "tstr": {
+              "accuracy": 0.7805555555555556,
+              "roc_auc": 0.7702612058080809,
+              "f1": 0.42457206846904494
+            },
+            "trts": {
+              "accuracy": 0.7738095238095238,
+              "roc_auc": 0.7776119402985076,
+              "f1": 0.5128205128205128
+            },
+            "tsts": {
+              "accuracy": 0.7678571428571429,
+              "roc_auc": 0.7667607906413876,
+              "f1": 0.4284352963598247
+            },
+            "tstr_gap_accuracy": 0.012500000000000011,
+            "tstr_gap_roc_auc": 0.011679292929292928,
+            "tstr_gap_f1": 0.0769505468466738
+          }
+        },
+        "tstr_gap_r2": 0.1845427096030534,
+        "pred_agreement": {
+          "paired": false,
+          "regression": {
+            "linear": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 241.65803015868897,
+              "pred_mean_synth": 225.99647798343295,
+              "pred_std_real": 404.73603766727103,
+              "pred_std_synth": 382.788826559669,
+              "ks_stat": 0.041666666666666685,
+              "ks_pvalue": 0.45962146257649045,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 227.70456930992694,
+              "pred_mean_synth": 246.4628947441556,
+              "pred_std_real": 524.493030104612,
+              "pred_std_synth": 477.09874759411235,
+              "ks_stat": 0.03928571428571431,
+              "ks_pvalue": 0.5361036300935536,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          },
+          "classification": {
+            "logistic": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.2658139213631528,
+              "pred_mean_synth": 0.26171500654118085,
+              "pred_std_real": 0.22472767440691674,
+              "pred_std_synth": 0.22769288734248605,
+              "ks_stat": 0.05952380952380956,
+              "ks_pvalue": 0.10196159345921427,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.26038560834417324,
+              "pred_mean_synth": 0.26444415569529073,
+              "pred_std_real": 0.24241062694366236,
+              "pred_std_synth": 0.21180441069274766,
+              "ks_stat": 0.1023809523809524,
+              "ks_pvalue": 0.00029699513365564323,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          }
+        },
+        "utility_score": 0.8905880750862751,
+        "utility_score_formula": "utility_score = clip(w-mean of available terms, 0, 1): 0.50 * mean_m (1 - clip(|R2_TRTR - R2_TSTR|, 0, 1))  [regression TSTR]; 0.20 * mean_m (1 - clip(|AUC_TRTR - AUC_TSTR|, 0, 1))  [clf TSTR, fallback to accuracy then f1]; 0.30 * agreement_score. agreement_score = 0.55 * clip(corr, 0, 1) + 0.45 * (1 - KS) when paired (corr = mean of clip(spearman,0,1) and clip(pearson,0,1)); otherwise 0.70 * (1 - KS) + 0.30 * moment_score, where moment_score = 1 - 0.5 * |\u03bcr-\u03bcs| / (|\u03bcr|+|\u03bcs|+\u03c3r+\u03c3s+\u03b5) - 0.5 * |\u03c3r-\u03c3s| / (\u03c3r+\u03c3s+\u03b5). Per-task agreement is averaged over the fitted frozen models. Missing families are dropped and the remaining weights renormalized.",
+        "meta": {
+          "n_real": 1200,
+          "n_synth": 840,
+          "n_real_train": 840,
+          "n_real_test": 360,
+          "n_synth_train": 588,
+          "n_synth_test": 252,
+          "test_size": 0.3,
+          "seed": 42,
+          "target_reg": "y",
+          "target_clf": "y_class",
+          "feature_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "region",
+            "segment",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "numeric_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "categorical_cols": [
+            "region",
+            "segment"
+          ],
+          "paired_rows": false,
+          "protocol": {
+            "trtr": "train real train \u2192 test real holdout",
+            "tstr": "train synth train \u2192 test the same real holdout",
+            "trts": "train real train \u2192 test synth holdout",
+            "tsts": "train synth train \u2192 test synth holdout"
+          }
+        },
+        "source": "src.metrics.utility"
+      },
+      "fidelity_score": 0.8892400103099275,
+      "utility_score": 0.8905880750862751,
+      "combined_score": 1.7798280853962027,
+      "gates": {
+        "fidelity_score_ge_0.70": true,
+        "corr_frobenius_rel_le_0.30": true,
+        "tstr_r2_gap_le_0.08": false,
+        "tstr_auc_gap_le_0.05": true,
+        "r2_gap": 0.1845427096030534,
+        "auc_gap": 0.011679292929292817,
+        "corr_frobenius_relative": 0.08078550443379107,
+        "passes": false
+      },
+      "tstr_gap_r2": 0.1845427096030534,
+      "tstr_r2_linear": 0.10163196574457933,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.2623915017563345,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "name": "negative_control",
+      "role": "negative_control",
+      "status": "ok",
+      "error": null,
+      "n_synthetic": 840,
+      "elapsed_sec": 0.8901068060000625,
+      "is_negative_control": true,
+      "synth_csv": "/workspace/data/synthetic_negative_control.csv",
+      "fidelity": {
+        "n_rows_real": 840,
+        "n_rows_synth": 840,
+        "n_cols_compared": 14,
+        "columns_compared": [
+          "age",
+          "income",
+          "tenure_months",
+          "region",
+          "segment",
+          "risk_score",
+          "num_products",
+          "is_premium",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y",
+          "y_class"
+        ],
+        "numeric_columns": [
+          "age",
+          "income",
+          "tenure_months",
+          "risk_score",
+          "num_products",
+          "usage",
+          "engagement",
+          "complaint_count",
+          "credit_util",
+          "y"
+        ],
+        "categorical_columns": [
+          "region",
+          "segment",
+          "is_premium",
+          "y_class"
+        ],
+        "per_column": {
+          "age": {
+            "type": "numeric",
+            "ks_statistic": 0.01904761904761909,
+            "wasserstein_1_normalized": 0.023049562521335228,
+            "mean_relative_error": 0.00142203266254548,
+            "std_relative_error": 0.011588425360780037,
+            "tvd": null
+          },
+          "income": {
+            "type": "numeric",
+            "ks_statistic": 0.07197943444730076,
+            "wasserstein_1_normalized": 0.02749342258167927,
+            "mean_relative_error": 0.0042412057597655045,
+            "std_relative_error": 0.011444490140615882,
+            "tvd": null
+          },
+          "tenure_months": {
+            "type": "numeric",
+            "ks_statistic": 0.024999999999999994,
+            "wasserstein_1_normalized": 0.02622790061432782,
+            "mean_relative_error": 0.001988372453176969,
+            "std_relative_error": 0.011466277658609253,
+            "tvd": null
+          },
+          "risk_score": {
+            "type": "numeric",
+            "ks_statistic": 0.024999999999999967,
+            "wasserstein_1_normalized": 0.023356788914298265,
+            "mean_relative_error": 0.00029432589964735565,
+            "std_relative_error": 0.01222265909550577,
+            "tvd": null
+          },
+          "num_products": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "usage": {
+            "type": "numeric",
+            "ks_statistic": 0.039285714285714285,
+            "wasserstein_1_normalized": 0.02850292055298196,
+            "mean_relative_error": 0.004576090663765166,
+            "std_relative_error": 0.016344313658661253,
+            "tvd": null
+          },
+          "engagement": {
+            "type": "numeric",
+            "ks_statistic": 0.01505646173149311,
+            "wasserstein_1_normalized": 0.01883144354455089,
+            "mean_relative_error": 0.001089863970853919,
+            "std_relative_error": 0.0055899688333184245,
+            "tvd": null
+          },
+          "complaint_count": {
+            "type": "numeric",
+            "ks_statistic": 0.0,
+            "wasserstein_1_normalized": 0.0,
+            "mean_relative_error": 0.0,
+            "std_relative_error": 0.0,
+            "tvd": null
+          },
+          "credit_util": {
+            "type": "numeric",
+            "ks_statistic": 0.017857142857142905,
+            "wasserstein_1_normalized": 0.01755270233272086,
+            "mean_relative_error": 0.0009135991161641124,
+            "std_relative_error": 0.0010839561922602549,
+            "tvd": null
+          },
+          "y": {
+            "type": "numeric",
+            "ks_statistic": 0.1916666666666667,
+            "wasserstein_1_normalized": 0.06632571131999039,
+            "mean_relative_error": 0.014907604839434598,
+            "std_relative_error": 0.01012372674788856,
+            "tvd": null
+          },
+          "region": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0
+          },
+          "segment": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0
+          },
+          "is_premium": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0
+          },
+          "y_class": {
+            "type": "categorical",
+            "ks_statistic": null,
+            "wasserstein_1_normalized": null,
+            "mean_relative_error": null,
+            "std_relative_error": null,
+            "tvd": 0.0
+          }
+        },
+        "ks_mean": 0.04048930390359368,
+        "wasserstein_normalized_mean": 0.023134045238188468,
+        "mean_relative_error_mean": 0.0029433095365353104,
+        "std_relative_error_mean": 0.007986381768763944,
+        "tvd_mean": 0.0,
+        "pearson_corr_frobenius": 3.175851261938186,
+        "spearman_corr_frobenius": 3.307334021761762,
+        "mutual_info_pairs": [
+          {
+            "pair": [
+              "risk_score",
+              "credit_util"
+            ],
+            "mi_real": 0.34779852268618106,
+            "mi_synth": 0.0,
+            "abs_delta": 0.34779852268618106
+          },
+          {
+            "pair": [
+              "income",
+              "usage"
+            ],
+            "mi_real": 0.21031860471410635,
+            "mi_synth": 0.0058614624384003555,
+            "abs_delta": 0.204457142275706
+          },
+          {
+            "pair": [
+              "age",
+              "tenure_months"
+            ],
+            "mi_real": 0.24611053372250202,
+            "mi_synth": 0.0,
+            "abs_delta": 0.24611053372250202
+          },
+          {
+            "pair": [
+              "risk_score",
+              "engagement"
+            ],
+            "mi_real": 0.18785367276977016,
+            "mi_synth": 0.0,
+            "abs_delta": 0.18785367276977016
+          },
+          {
+            "pair": [
+              "complaint_count",
+              "y"
+            ],
+            "mi_real": 0.050302406051446535,
+            "mi_synth": 0.037686788480386646,
+            "abs_delta": 0.01261561757105989
+          }
+        ],
+        "mutual_info_drift_mean": 0.19976709780504381,
+        "missingness": {
+          "age": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "income": {
+            "real": 0.07380952380952381,
+            "synth": 0.07380952380952381,
+            "abs_delta": 0.0
+          },
+          "tenure_months": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "region": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "segment": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "risk_score": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "num_products": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "is_premium": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "usage": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "engagement": {
+            "real": 0.05119047619047619,
+            "synth": 0.05119047619047619,
+            "abs_delta": 0.0
+          },
+          "complaint_count": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "credit_util": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          },
+          "y_class": {
+            "real": 0.0,
+            "synth": 0.0,
+            "abs_delta": 0.0
+          }
+        },
+        "missingness_mae": 0.0,
+        "component_scores": {
+          "ks_sim": 0.9595106960964063,
+          "wass_sim": 0.977389037784582,
+          "mean_sim": 0.9970653281112216,
+          "std_sim": 0.9920768951711928,
+          "tvd_sim": 1.0,
+          "pearson_sim": 0.3998006262562959,
+          "spearman_sim": 0.3849102480259313,
+          "mi_sim": 0.8334951023656885,
+          "miss_sim": 1.0,
+          "xy_sim": 0.40303343819927645,
+          "marginal_score": 0.9876736595272337,
+          "dependence_score": 0.539401992215972
+        },
+        "xy_relationship": {
+          "target": "y",
+          "feature_corr": {
+            "age": {
+              "corr_real": 0.005789741256007316,
+              "corr_synth": -0.0631595798996539,
+              "abs_delta": 0.06894932115566121
+            },
+            "income": {
+              "corr_real": -0.06749723066131195,
+              "corr_synth": -0.009070210985173964,
+              "abs_delta": 0.05842701967613799
+            },
+            "tenure_months": {
+              "corr_real": -0.026851656952172214,
+              "corr_synth": 0.007121172694700717,
+              "abs_delta": 0.03397282964687293
+            },
+            "risk_score": {
+              "corr_real": 0.4409159760494315,
+              "corr_synth": -0.006825889227592135,
+              "abs_delta": 0.44774186527702364
+            },
+            "num_products": {
+              "corr_real": -0.06700389503052355,
+              "corr_synth": 0.024455176046569764,
+              "abs_delta": 0.0914590710770933
+            },
+            "is_premium": {
+              "corr_real": -0.02108579627290607,
+              "corr_synth": 0.07606761159766498,
+              "abs_delta": 0.09715340787057106
+            },
+            "usage": {
+              "corr_real": 0.045366865982662534,
+              "corr_synth": -0.010693121396056186,
+              "abs_delta": 0.05605998737871872
+            },
+            "engagement": {
+              "corr_real": -0.2577501640405277,
+              "corr_synth": 0.028897905904343293,
+              "abs_delta": 0.28664806994487096
+            },
+            "complaint_count": {
+              "corr_real": 0.39684153228809227,
+              "corr_synth": 0.04953588548062259,
+              "abs_delta": 0.34730564680746967
+            },
+            "credit_util": {
+              "corr_real": 0.3850073672993628,
+              "corr_synth": 0.01850683626986663,
+              "abs_delta": 0.36650053102949615
+            },
+            "y_class": {
+              "corr_real": 0.2703765139997136,
+              "corr_synth": -0.008670095752288923,
+              "abs_delta": 0.2790466097520025
+            }
+          },
+          "corr_abs_delta_mean": 0.1939331236014471,
+          "r2_real": 0.3230927235281724,
+          "r2_synth_with_real_coefs": -0.17681899116894995,
+          "r2_synth_refit": 0.014315413924646303,
+          "r2_delta": 0.49991171469712237,
+          "coef_cosine_similarity": -0.5839210492014256,
+          "n_features": 11,
+          "features": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util",
+            "y_class"
+          ]
+        },
+        "fidelity_score": 0.6193360708026723,
+        "fidelity_score_formula": "fidelity_score = 0.30 * mean(marginal sims) + 0.30 * mean(X-structure sims) + 0.40 * xy_sim when target y is present; otherwise 0.40/0.60 marginal/dep. Marginal: s_ks=1-mean(KS); s_wass=1/(1+mean(W1/std_real)); s_mean=1/(1+mean(mean_rel_err)); s_std=1/(1+mean(std_rel_err)); s_tvd=1-mean(TVD); s_miss=1-mean(|miss_r-miss_s|) if NaNs exist. X-structure: s_pearson=exp(-||P_r-P_s||_F/sqrt(n)); same for Spearman; s_mi=1/(1+mean(|MI_r-MI_s|)). xy_sim = 0.5*(1-mean|corr(X,y)_r-corr(X,y)_s|) + 0.5*clip(OLS coef cosine,0,1). Missing families drop out and remaining weights renormalize. Clipped to [0, 1].",
+        "spearman_corr_frobenius_relative": 0.6829983164705894,
+        "source": "src.metrics.statistical"
+      },
+      "utility": {
+        "regression": {
+          "linear": {
+            "trtr": {
+              "r2": 0.18861641532353612,
+              "rmse": 858.5429483235253,
+              "mae": 263.9912941559348
+            },
+            "tstr": {
+              "r2": -0.007654089781551132,
+              "rmse": 956.7636189695104,
+              "mae": 227.37008314214884
+            },
+            "trts": {
+              "r2": -0.12308275926388412,
+              "rmse": 1026.9784021059988,
+              "mae": 431.25196547723436
+            },
+            "tsts": {
+              "r2": -0.014324494499934115,
+              "rmse": 975.9866712767747,
+              "mae": 288.86208881559986
+            },
+            "tstr_gap_r2": 0.19627050510508726
+          },
+          "random_forest": {
+            "trtr": {
+              "r2": 0.5444924713834846,
+              "rmse": 643.2750342627901,
+              "mae": 130.53865662804117
+            },
+            "tstr": {
+              "r2": -0.021221946997027397,
+              "rmse": 963.1833946771927,
+              "mae": 237.68825470637782
+            },
+            "trts": {
+              "r2": -0.2202213868128977,
+              "rmse": 1070.4706056676573,
+              "mae": 372.62460677635704
+            },
+            "tsts": {
+              "r2": -0.0891884363244917,
+              "rmse": 1011.3627200824963,
+              "mae": 322.798218513973
+            },
+            "tstr_gap_r2": 0.565714418380512
+          },
+          "mean": {
+            "trtr": {
+              "r2": 0.36655444335351034,
+              "rmse": 750.9089912931577,
+              "mae": 197.26497539198797
+            },
+            "tstr": {
+              "r2": -0.014438018389289264,
+              "rmse": 959.9735068233515,
+              "mae": 232.52916892426333
+            },
+            "trts": {
+              "r2": -0.17165207303839092,
+              "rmse": 1048.7245038868282,
+              "mae": 401.9382861267957
+            },
+            "tsts": {
+              "r2": -0.051756465412212904,
+              "rmse": 993.6746956796355,
+              "mae": 305.8301536647864
+            },
+            "tstr_gap_r2": 0.3809924617427996
+          },
+          "tstr_gap_r2": 0.3809924617427996
+        },
+        "classification": {
+          "logistic": {
+            "trtr": {
+              "accuracy": 0.7972222222222223,
+              "roc_auc": 0.7759627525252526,
+              "f1": 0.496551724137931
+            },
+            "tstr": {
+              "accuracy": 0.7305555555555555,
+              "roc_auc": 0.6231455176767676,
+              "f1": 0.0
+            },
+            "trts": {
+              "accuracy": 0.6865079365079365,
+              "roc_auc": 0.4957644211375555,
+              "f1": 0.23300970873786409
+            },
+            "tsts": {
+              "accuracy": 0.7182539682539683,
+              "roc_auc": 0.5153691004437273,
+              "f1": 0.0273972602739726
+            },
+            "tstr_gap_accuracy": 0.06666666666666676,
+            "tstr_gap_roc_auc": 0.15281723484848497,
+            "tstr_gap_f1": 0.496551724137931
+          },
+          "random_forest": {
+            "trtr": {
+              "accuracy": 0.7888888888888889,
+              "roc_auc": 0.7879182449494949,
+              "f1": 0.5064935064935064
+            },
+            "tstr": {
+              "accuracy": 0.7277777777777777,
+              "roc_auc": 0.5847143308080808,
+              "f1": 0.0
+            },
+            "trts": {
+              "accuracy": 0.7063492063492064,
+              "roc_auc": 0.5044776119402985,
+              "f1": 0.2127659574468085
+            },
+            "tsts": {
+              "accuracy": 0.7341269841269841,
+              "roc_auc": 0.4764824526018556,
+              "f1": 0.0
+            },
+            "tstr_gap_accuracy": 0.061111111111111116,
+            "tstr_gap_roc_auc": 0.20320391414141414,
+            "tstr_gap_f1": 0.5064935064935064
+          },
+          "mean": {
+            "trtr": {
+              "accuracy": 0.7930555555555556,
+              "roc_auc": 0.7819404987373737,
+              "f1": 0.5015226153157187
+            },
+            "tstr": {
+              "accuracy": 0.7291666666666666,
+              "roc_auc": 0.6039299242424242,
+              "f1": 0.0
+            },
+            "trts": {
+              "accuracy": 0.6964285714285714,
+              "roc_auc": 0.5001210165389269,
+              "f1": 0.22288783309233628
+            },
+            "tsts": {
+              "accuracy": 0.7261904761904762,
+              "roc_auc": 0.49592577652279146,
+              "f1": 0.0136986301369863
+            },
+            "tstr_gap_accuracy": 0.06388888888888894,
+            "tstr_gap_roc_auc": 0.17801057449494956,
+            "tstr_gap_f1": 0.5015226153157187
+          }
+        },
+        "tstr_gap_r2": 0.3809924617427996,
+        "pred_agreement": {
+          "paired": false,
+          "regression": {
+            "linear": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 241.65803015868897,
+              "pred_mean_synth": 241.75244090480084,
+              "pred_std_real": 404.73603766727103,
+              "pred_std_synth": 368.2947868825122,
+              "ks_stat": 0.03452380952380951,
+              "ks_pvalue": 0.6989886123038087,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 227.70456930992694,
+              "pred_mean_synth": 248.01662292326662,
+              "pred_std_real": 524.493030104612,
+              "pred_std_synth": 430.10089678198875,
+              "ks_stat": 0.09761904761904766,
+              "ks_pvalue": 0.0006624328984929364,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          },
+          "classification": {
+            "logistic": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.2658139213631528,
+              "pred_mean_synth": 0.25764005977859705,
+              "pred_std_real": 0.22472767440691674,
+              "pred_std_synth": 0.2000807248567561,
+              "ks_stat": 0.05119047619047623,
+              "ks_pvalue": 0.22112294257273854,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            },
+            "random_forest": {
+              "paired": false,
+              "spearman": null,
+              "pearson": null,
+              "label_agreement": null,
+              "pred_mean_real": 0.26038560834417324,
+              "pred_mean_synth": 0.2797593934073307,
+              "pred_std_real": 0.24241062694366236,
+              "pred_std_synth": 0.1651370013754522,
+              "ks_stat": 0.24285714285714288,
+              "ks_pvalue": 3.8139895413895593e-22,
+              "n_real": 1200,
+              "n_synth": 840,
+              "n_ks": 840
+            }
+          }
+        },
+        "utility_score": 0.7466105475937413,
+        "utility_score_formula": "utility_score = clip(w-mean of available terms, 0, 1): 0.50 * mean_m (1 - clip(|R2_TRTR - R2_TSTR|, 0, 1))  [regression TSTR]; 0.20 * mean_m (1 - clip(|AUC_TRTR - AUC_TSTR|, 0, 1))  [clf TSTR, fallback to accuracy then f1]; 0.30 * agreement_score. agreement_score = 0.55 * clip(corr, 0, 1) + 0.45 * (1 - KS) when paired (corr = mean of clip(spearman,0,1) and clip(pearson,0,1)); otherwise 0.70 * (1 - KS) + 0.30 * moment_score, where moment_score = 1 - 0.5 * |\u03bcr-\u03bcs| / (|\u03bcr|+|\u03bcs|+\u03c3r+\u03c3s+\u03b5) - 0.5 * |\u03c3r-\u03c3s| / (\u03c3r+\u03c3s+\u03b5). Per-task agreement is averaged over the fitted frozen models. Missing families are dropped and the remaining weights renormalized.",
+        "meta": {
+          "n_real": 1200,
+          "n_synth": 840,
+          "n_real_train": 840,
+          "n_real_test": 360,
+          "n_synth_train": 588,
+          "n_synth_test": 252,
+          "test_size": 0.3,
+          "seed": 42,
+          "target_reg": "y",
+          "target_clf": "y_class",
+          "feature_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "region",
+            "segment",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "numeric_cols": [
+            "age",
+            "income",
+            "tenure_months",
+            "risk_score",
+            "num_products",
+            "is_premium",
+            "usage",
+            "engagement",
+            "complaint_count",
+            "credit_util"
+          ],
+          "categorical_cols": [
+            "region",
+            "segment"
+          ],
+          "paired_rows": false,
+          "protocol": {
+            "trtr": "train real train \u2192 test real holdout",
+            "tstr": "train synth train \u2192 test the same real holdout",
+            "trts": "train real train \u2192 test synth holdout",
+            "tsts": "train synth train \u2192 test synth holdout"
+          }
+        },
+        "source": "src.metrics.utility"
+      },
+      "fidelity_score": 0.6193360708026723,
+      "utility_score": 0.7466105475937413,
+      "combined_score": 1.3659466183964137,
+      "gates": {
+        "fidelity_score_ge_0.70": false,
+        "corr_frobenius_rel_le_0.30": false,
+        "tstr_r2_gap_le_0.08": false,
+        "tstr_auc_gap_le_0.05": false,
+        "r2_gap": 0.3809924617427996,
+        "auc_gap": 0.1780105744949495,
+        "corr_frobenius_relative": 0.6829983164705894,
+        "passes": false
+      },
+      "tstr_gap_r2": 0.3809924617427996,
+      "tstr_r2_linear": -0.007654089781551132,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": -0.021221946997027397,
+      "trtr_r2_rf": 0.5444924713834846
+    }
+  ],
+  "leaderboard": [
+    {
+      "rank": 1,
+      "name": "identity",
+      "role": "positive_control",
+      "status": "ok",
+      "fidelity_score": 1.0,
+      "utility_score": 0.9811047101436245,
+      "combined_score": 1.9811047101436245,
+      "elapsed_sec": 0.8702158070000223,
+      "is_negative_control": false,
+      "tstr_gap_r2": -0.01979822474307741,
+      "tstr_r2_linear": 0.19020712255745775,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.5824982136357177,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "rank": 2,
+      "name": "cart",
+      "role": "method",
+      "status": "ok",
+      "fidelity_score": 0.9366342321950598,
+      "utility_score": 0.9532500953076068,
+      "combined_score": 1.8898843275026667,
+      "elapsed_sec": 0.9255370870000661,
+      "is_negative_control": false,
+      "tstr_gap_r2": 0.05967970825601371,
+      "tstr_r2_linear": 0.13443232984316367,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.4793171403518296,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "rank": 3,
+      "name": "mixture",
+      "role": "method",
+      "status": "ok",
+      "fidelity_score": 0.9315392093924798,
+      "utility_score": 0.891670743442513,
+      "combined_score": 1.8232099528349928,
+      "elapsed_sec": 1.4569313000000648,
+      "is_negative_control": false,
+      "tstr_gap_r2": 0.17869196939859922,
+      "tstr_r2_linear": 0.15016933201166793,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.22555561589815432,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "rank": 4,
+      "name": "hybrid",
+      "role": "method",
+      "status": "ok",
+      "fidelity_score": 0.8892400103099275,
+      "utility_score": 0.8905880750862751,
+      "combined_score": 1.7798280853962027,
+      "elapsed_sec": 1.120084777000102,
+      "is_negative_control": false,
+      "tstr_gap_r2": 0.1845427096030534,
+      "tstr_r2_linear": 0.10163196574457933,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.2623915017563345,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "rank": 5,
+      "name": "copula",
+      "role": "method",
+      "status": "ok",
+      "fidelity_score": 0.853544317221369,
+      "utility_score": 0.768917716982333,
+      "combined_score": 1.6224620342037022,
+      "elapsed_sec": 0.8915826559999687,
+      "is_negative_control": false,
+      "tstr_gap_r2": 0.21458970358437485,
+      "tstr_r2_linear": 0.11906757549486424,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": 0.18486190404340674,
+      "trtr_r2_rf": 0.5444924713834846
+    },
+    {
+      "rank": 6,
+      "name": "negative_control",
+      "role": "negative_control",
+      "status": "ok",
+      "fidelity_score": 0.6193360708026723,
+      "utility_score": 0.7466105475937413,
+      "combined_score": 1.3659466183964137,
+      "elapsed_sec": 0.8901068060000625,
+      "is_negative_control": true,
+      "tstr_gap_r2": 0.3809924617427996,
+      "tstr_r2_linear": -0.007654089781551132,
+      "trtr_r2_linear": 0.18861641532353612,
+      "tstr_r2_rf": -0.021221946997027397,
+      "trtr_r2_rf": 0.5444924713834846
+    }
+  ],
+  "negative_control_fires": {
+    "expected": "negative_control should sit below identity / real synthesizers on combined_score and fail a dependence or TSTR gate",
+    "negative_control_last": true,
+    "failed_a_gate": true,
+    "below_identity": true,
+    "below_best_method": true,
+    "metrics_fire": true
+  },
+  "winner": "cart"
+}
