@@ -493,6 +493,133 @@ def _as_comparable(df):
     return df.select(*cols)
 
 
+def _speedup(t_base, t_opt):
+    return t_base / t_opt if t_opt else float("inf")
+
+
+def bench_cuellos(spark, fecha_num=20240107, fecha_str="2024-01-07"):
+    """Mide solo los 3 scans que en prod se comen los ~2766 s."""
+    results = {}
+
+    t0 = time.time()
+    aux = spark.sql(
+        f"""
+        SELECT id_cliente AS cliente_unico, MAX(fec_surtimiento) AS fec_surtimiento
+        FROM ws_celcobd_analitica.tt_1117735_pedidoshistoricos_cuartel
+        WHERE fec_surtimiento > 19010101 AND fec_surtimiento <= {fecha_num}
+        GROUP BY id_cliente
+        """
+    )
+    full = spark.sql(
+        """
+        SELECT id_cliente AS cliente_unico, cuartel, fec_surtimiento
+        FROM ws_celcobd_analitica.tt_1117735_pedidoshistoricos_cuartel
+        """
+    )
+    n_b = full.join(aux, on=["cliente_unico", "fec_surtimiento"]).select(
+        "cliente_unico", "cuartel"
+    ).distinct().count()
+    t_b = time.time() - t0
+
+    t1 = time.time()
+    pivot = F.broadcast(
+        spark.table("ws_celcobd_analitica.ta_338082_servilleta_total_cu_240826")
+        .select("cliente_unico").distinct()
+    )
+    w = Window.partitionBy("cliente_unico").orderBy(
+        F.col("fec_surtimiento").desc(), F.col("cuartel").asc_nulls_last()
+    )
+    n_o = (
+        spark.table("ws_celcobd_analitica.tt_1117735_pedidoshistoricos_cuartel")
+        .select(
+            F.col("id_cliente").alias("cliente_unico"),
+            F.col("cuartel"),
+            F.col("fec_surtimiento"),
+        )
+        .where((F.col("fec_surtimiento") > 19010101) & (F.col("fec_surtimiento") <= fecha_num))
+        .join(pivot, on="cliente_unico", how="inner")
+        .withColumn("rn", F.row_number().over(w))
+        .where(F.col("rn") == 1)
+        .select("cliente_unico", "cuartel")
+        .count()
+    )
+    t_o = time.time() - t1
+    results["cuarteles"] = (t_b, t_o, n_b, n_o)
+
+    t0 = time.time()
+    n_b = spark.sql(
+        f"""
+        SELECT DISTINCT id_icu
+        FROM cd_baz_bdclientes.cd_dig_txn_financieras
+        WHERE tms_operacion > DATE_ADD('{fecha_str}', -30)
+          AND tms_operacion <= '{fecha_str}'
+        """
+    ).count()
+    t_b = time.time() - t0
+
+    t1 = time.time()
+    icus = F.broadcast(
+        spark.sql(
+            f"""
+            SELECT DISTINCT id_icu
+            FROM cd_baz_bdclientes.cd_dig_clientes d
+            INNER JOIN ws_celcobd_analitica.ta_338082_servilleta_total_cu_240826 p
+              ON d.id_cliente_unico = p.cliente_unico
+            WHERE d.tms_alta <= '{fecha_str}'
+            """
+        )
+    )
+    n_o = (
+        spark.sql(
+            f"""
+            SELECT id_icu
+            FROM cd_baz_bdclientes.cd_dig_txn_financieras
+            WHERE tms_operacion > DATE_ADD('{fecha_str}', -30)
+              AND tms_operacion <= '{fecha_str}'
+            """
+        )
+        .join(icus, on="id_icu", how="left_semi")
+        .distinct()
+        .count()
+    )
+    t_o = time.time() - t1
+    results["txn_distinct"] = (t_b, t_o, n_b, n_o)
+
+    t0 = time.time()
+    n_b = spark.sql(
+        """
+        SELECT id_master, SUM(rentabilidad_credito) AS s
+        FROM ws_aarent_analitica.cu_renta_credito_operaciones_cliente
+        WHERE num_periodo_sem > 202301 AND num_periodo_sem <= 202401
+        GROUP BY id_master
+        """
+    ).count()
+    t_b = time.time() - t0
+
+    t1 = time.time()
+    masters = F.broadcast(
+        spark.sql(
+            """
+            SELECT DISTINCT id_master
+            FROM ec_baz_bdclientes.ec_cre_comportamental_layout_cerebro_full c
+            INNER JOIN ws_celcobd_analitica.ta_338082_servilleta_total_cu_240826 p
+              ON c.id_cte_unico = p.cliente_unico
+            """
+        )
+    )
+    n_o = (
+        spark.table("ws_aarent_analitica.cu_renta_credito_operaciones_cliente")
+        .where((F.col("num_periodo_sem") > 202301) & (F.col("num_periodo_sem") <= 202401))
+        .join(masters, on="id_master", how="left_semi")
+        .groupBy("id_master")
+        .agg(F.sum("rentabilidad_credito").alias("s"))
+        .count()
+    )
+    t_o = time.time() - t1
+    results["renta"] = (t_b, t_o, n_b, n_o)
+    return results
+
+
 def comparar(df_base, df_opt):
     b = _as_comparable(df_base)
     o = _as_comparable(df_opt)
@@ -549,8 +676,20 @@ def main():
         t_opt = time.time() - t1
 
         n = comparar(df_base, df_opt)
-        print(f"OK equivalencia: {n} filas idénticas")
+        print(f"OK equivalencia vs base (sin empates): {n} filas idénticas")
         print(f"tiempo base={t_base:.2f}s  opt={t_opt:.2f}s  (n={args.n}, filas_out={n_base})")
+
+        spark.catalog.clearCache()
+        df_opt_a = genera_layout(
+            SEMANA_CMP, SEMANA, MES, SEMANA_LAE, "overwrite",
+            spark=spark, escribir=False, refrescar=False,
+        )
+        df_opt_b = genera_layout(
+            SEMANA_CMP, SEMANA, MES, SEMANA_LAE, "overwrite",
+            spark=spark, escribir=False, refrescar=False,
+        )
+        n_stab = comparar(df_opt_a, df_opt_b)
+        print(f"OK estabilidad opt vs opt: {n_stab} filas idénticas en 2 corridas")
 
         print("=" * 72)
         print(f"PERFORMANCE   n={args.n_perf}  ruido={args.ruido}")
@@ -573,12 +712,20 @@ def main():
         t_opt_p = time.time() - t1
 
         comparar(df_base_p, df_opt_p)
-        speedup = t_base_p / t_opt_p if t_opt_p else float("inf")
         print(f"OK perf equivalencia: {n_opt_p} filas")
         print(
-            f"PERF base={t_base_p:.2f}s  opt={t_opt_p:.2f}s  "
-            f"speedup={speedup:.2f}x  filas_out={n_base_p}"
+            f"PERF pipeline base={t_base_p:.2f}s  opt={t_opt_p:.2f}s  "
+            f"speedup={_speedup(t_base_p, t_opt_p):.2f}x  filas_out={n_base_p}"
         )
+
+        print("=" * 72)
+        print("CUELLOS AISLADOS (cuarteles 2 scans / txn DISTINCT / renta GROUP BY)")
+        print("=" * 72)
+        for nombre, (tb, to, nb, no) in bench_cuellos(spark).items():
+            print(
+                f"{nombre:14s}  base={tb:.2f}s  opt={to:.2f}s  "
+                f"speedup={_speedup(tb, to):.2f}x  rows_base={nb} rows_opt={no}"
+            )
         print("ALL CHECKS PASSED")
     finally:
         if spark is not None:

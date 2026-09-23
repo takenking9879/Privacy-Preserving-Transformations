@@ -14,10 +14,11 @@ Ajustes que debes revisar antes de correr:
 
 Equivalencia vs. la versión base:
   - Mismos filtros, agregaciones, joins (left/inner) y transformaciones finales.
-  - El desempate con rand() en cerebro/cuarteles es no determinista en AMBAS
-    versiones. Si un cliente tiene varias filas candidatas distintas, la fila
-    ganadora puede cambiar entre corridas. Con una sola fila candidata el
-    resultado es idéntico.
+  - El original desempataba con rand(): SI hay 2+ filas candidatas del mismo
+    cliente, NI SIQUIERA la base da lo mismo entre dos corridas.
+  - Aquí el desempate es estable (id_master / cuartel). Con 1 candidata
+    (el caso típico) el resultado es idéntico al original. Con empate, esta
+    versión siempre elige la misma fila; la base no.
 """
 
 from pyspark import StorageLevel
@@ -91,9 +92,9 @@ def _sesion_spark(spark=None):
     return session
 
 
-def _dedup_rand(df, llave="cliente_unico"):
-    """Misma semántica que la base: 1 fila al azar por llave."""
-    ventana = Window.partitionBy(llave).orderBy(F.rand())
+def _dedup_estable(df, llave, *orden):
+    """1 fila por llave con orden determinista (reproducible entre corridas)."""
+    ventana = Window.partitionBy(llave).orderBy(*orden)
     return (
         df.withColumn("numero_fila", F.row_number().over(ventana))
         .where(F.col("numero_fila") == 1)
@@ -172,9 +173,16 @@ def genera_layout(
         """
     )
 
-    # AQE hace broadcast de este set si cabe en 64m. No se materializa
-    # con un count extra: vive en el mismo job que el count/write final.
-    pivot_keys = base_pivote.select("cliente_unico").distinct()
+    # Broadcast del universo: convierte scans de digital/txn/cuarteles en
+    # hash-join local (sin shuffle de esas tablas). El count materializa
+    # el set una vez; en un job de 40+ min son milisegundos.
+    pivot_keys_cached = (
+        base_pivote.select("cliente_unico")
+        .distinct()
+        .persist(StorageLevel.MEMORY_AND_DISK)
+    )
+    pivot_keys_cached.count()
+    pivot_keys = F.broadcast(pivot_keys_cached)
 
     # ----------------------------------------------------------------------
     # Cerebro: recorte por semana + CUs del pivote, luego 1 fila random
@@ -198,13 +206,20 @@ def genera_layout(
         )
         .join(pivot_keys, on="cliente_unico", how="inner")
     )
-    cerebro = _dedup_rand(cerebro, "cliente_unico")
+    cerebro = _dedup_estable(
+        cerebro, "cliente_unico",
+        F.col("id_master").asc_nulls_last(),
+        F.col("antig_tl").asc_nulls_last(),
+    )
 
-    master_keys = (
+    master_keys_cached = (
         cerebro.select("id_master")
         .where(F.col("id_master").isNotNull())
         .distinct()
+        .persist(StorageLevel.MEMORY_AND_DISK)
     )
+    master_keys_cached.count()
+    master_keys = F.broadcast(master_keys_cached)
 
     # ----------------------------------------------------------------------
     # LAE recortado al pivote
@@ -220,28 +235,22 @@ def genera_layout(
         .join(pivot_keys, on="cliente_unico", how="inner")
     )
 
-    # ----------------------------------------------------------------------
-    # CLTV futuros / activo / renta: solo id_master que pueden entrar al inner
-    # ----------------------------------------------------------------------
-    cltv_futuro_hog = (
-        spark.sql(f"SELECT id_master, cltv AS cltv_f_hog FROM {TBL_CLTV_FUTURO_HOG}")
-        .join(master_keys, on="id_master", how="left_semi")
+    # CLTV semanales: ya vienen filtrados por {semana}; no vale la pena
+    # un left_semi extra. Solo se recorta la renta (histórico de un año).
+    cltv_futuro_hog = spark.sql(
+        f"SELECT id_master, cltv AS cltv_f_hog FROM {TBL_CLTV_FUTURO_HOG}"
     )
-    cltv_futuro_con = (
-        spark.sql(f"SELECT id_master, cltv AS cltv_f_con FROM {TBL_CLTV_FUTURO_CON}")
-        .join(master_keys, on="id_master", how="left_semi")
+    cltv_futuro_con = spark.sql(
+        f"SELECT id_master, cltv AS cltv_f_con FROM {TBL_CLTV_FUTURO_CON}"
     )
-    cltv_futuro_efe = (
-        spark.sql(f"SELECT id_master, cltv AS cltv_f_efe FROM {TBL_CLTV_FUTURO_EFE}")
-        .join(master_keys, on="id_master", how="left_semi")
+    cltv_futuro_efe = spark.sql(
+        f"SELECT id_master, cltv AS cltv_f_efe FROM {TBL_CLTV_FUTURO_EFE}"
     )
-    cltv_futuro_mov = (
-        spark.sql(f"SELECT id_master, cltv AS cltv_f_mov FROM {TBL_CLTV_FUTURO_MOV}")
-        .join(master_keys, on="id_master", how="left_semi")
+    cltv_futuro_mov = spark.sql(
+        f"SELECT id_master, cltv AS cltv_f_mov FROM {TBL_CLTV_FUTURO_MOV}"
     )
-    cltv_activo = (
-        spark.sql(f"SELECT id_master, clvpa AS cltv_activo FROM {TBL_CLTV_ACTIVO}")
-        .join(master_keys, on="id_master", how="left_semi")
+    cltv_activo = spark.sql(
+        f"SELECT id_master, clvpa AS cltv_activo FROM {TBL_CLTV_ACTIVO}"
     )
 
     cltv_real_rbs = (
@@ -270,7 +279,6 @@ def genera_layout(
         spark.table(TBL_NBCO)
         .where(F.col("num_periodo_mes") == mes)
         .drop("fcusuariocreacion", "fdfechacreacion", "num_periodo_mes")
-        .join(master_keys, on="id_master", how="left_semi")
     )
 
     # ----------------------------------------------------------------------
@@ -312,11 +320,16 @@ def genera_layout(
 
     # ----------------------------------------------------------------------
     # Cuarteles: UN solo scan filtrado (la base lee el histórico completo 2 veces)
-    # Semántica idéntica:
-    #   max(fec_surtimiento) en (19010101, fecha_num] → distinct(CU, cuartel)
-    #   → 1 fila random por cliente
+    # Semántica vs. la base:
+    #   max(fec) en (19010101, fecha_num] → distinct(CU, cuartel) → 1 fila.
+    #   Un solo ORDER BY fec DESC, cuartel ASC equivale a eso y es estable
+    #   (la base usaba rand() en el empate).
     # ----------------------------------------------------------------------
-    cuarteles_filtrado = (
+    w_cuartel = Window.partitionBy("cliente_unico").orderBy(
+        F.col("fec_surtimiento").desc(),
+        F.col("cuartel").asc_nulls_last(),
+    )
+    cuarteles_cliente = (
         spark.table(TBL_CUARTELES)
         .select(
             F.col("id_cliente").alias("cliente_unico"),
@@ -328,17 +341,10 @@ def genera_layout(
             & (F.col("fec_surtimiento") <= fecha_num)
         )
         .join(pivot_keys, on="cliente_unico", how="inner")
-    )
-
-    w_max_fec = Window.partitionBy("cliente_unico")
-    cuarteles_cliente = (
-        cuarteles_filtrado
-        .withColumn("max_fec", F.max("fec_surtimiento").over(w_max_fec))
-        .where(F.col("fec_surtimiento") == F.col("max_fec"))
+        .withColumn("numero_fila", F.row_number().over(w_cuartel))
+        .where(F.col("numero_fila") == 1)
         .select("cliente_unico", "cuartel")
-        .distinct()
     )
-    cuarteles_cliente = _dedup_rand(cuarteles_cliente, "cliente_unico")
 
     # ----------------------------------------------------------------------
     # Uniones — mismo orden que la base para conservar columnas
@@ -385,6 +391,15 @@ def genera_layout(
             .partitionBy("num_periodo_sem")
             .saveAsTable(tabla_out)
         )
+
+    try:
+        pivot_keys_cached.unpersist()
+    except Exception:
+        pass
+    try:
+        master_keys_cached.unpersist()
+    except Exception:
+        pass
 
     return base_pivote_final
 
