@@ -80,8 +80,10 @@ def _sesion_spark(spark=None):
         "spark.sql.adaptive.advisoryPartitionSizeInBytes": "64m",
         "spark.sql.adaptive.coalescePartitions.minPartitionNum": "4",
         "spark.sql.adaptive.coalescePartitions.initialPartitionNum": "36",
-        "spark.sql.autoBroadcastJoinThreshold": str(64 * 1024 * 1024),
-        "spark.sql.adaptive.autoBroadcastJoinThreshold": str(64 * 1024 * 1024),
+        # 16m: el driver de prod tiene 1g; 64m de broadcast lo puede congelar
+        # (collect al driver, cero stages en la UI).
+        "spark.sql.autoBroadcastJoinThreshold": str(16 * 1024 * 1024),
+        "spark.sql.adaptive.autoBroadcastJoinThreshold": str(16 * 1024 * 1024),
         "spark.sql.broadcastTimeout": "600",
         "spark.sql.files.maxPartitionBytes": "128m",
         "spark.sql.inMemoryColumnarStorage.compressed": "true",
@@ -203,22 +205,16 @@ def genera_layout(
         """
     )
 
-    # Broadcast del universo: convierte scans de digital/txn/cuarteles en
-    # hash-join local (sin shuffle de esas tablas). El count materializa
-    # el set una vez; en un job de 40+ min son milisegundos.
-    pivot_keys_cached = (
-        base_pivote.select("cliente_unico")
-        .distinct()
-        .persist(StorageLevel.MEMORY_AND_DISK)
-    )
-    spark.sparkContext.setJobDescription("02_pivot_keys")
-    _paso(f"Materializando CUs del pivote ({TBL_PIVOTE})")
-    n_cu = pivot_keys_cached.count()
-    _paso(f"Pivote OK  CUs={n_cu}")
-    pivot_keys = F.broadcast(pivot_keys_cached)
+    # Distinct lazy. NO count() ni F.broadcast(): el driver tiene 1g y
+    # collect del pivote para broadcast se cuelga SIN crear stages.
+    # AQE decide broadcast solo si el set cabe en 64m.
+    pivot_keys = base_pivote.select("cliente_unico").distinct()
+    _paso("Pivote definido (lazy, sin count/broadcast)")
 
     # ----------------------------------------------------------------------
-    # Cerebro: recorte por semana + CUs del pivote, luego 1 fila random
+    # Cerebro: recorte por semana + CUs del pivote, dedup estable.
+    # Tampoco se materializa aquí: el count() de masters leía cerebro_full
+    # + window + broadcast y trababa el driver.
     # ----------------------------------------------------------------------
     cerebro = (
         spark.sql(
@@ -244,18 +240,15 @@ def genera_layout(
         F.col("id_master").asc_nulls_last(),
         F.col("antig_tl").asc_nulls_last(),
     )
+    # Persist sin count: el COUNT/WRITE final materializa una vez y se reusa.
+    cerebro = cerebro.persist(StorageLevel.MEMORY_AND_DISK)
 
-    master_keys_cached = (
+    master_keys = (
         cerebro.select("id_master")
         .where(F.col("id_master").isNotNull())
         .distinct()
-        .persist(StorageLevel.MEMORY_AND_DISK)
     )
-    spark.sparkContext.setJobDescription("03_master_keys_cerebro")
-    _paso("Materializando id_master (cerebro + dedup)")
-    n_master = master_keys_cached.count()
-    _paso(f"Masters OK  id_master={n_master}")
-    master_keys = F.broadcast(master_keys_cached)
+    _paso("Cerebro + master_keys definidos (lazy). Stages salen en el COUNT final.")
 
     # ----------------------------------------------------------------------
     # LAE recortado al pivote
@@ -436,19 +429,19 @@ def genera_layout(
         _paso(f"WRITE OK  {tabla_out}")
 
     try:
-        pivot_keys_cached.unpersist()
-    except Exception:
-        pass
-    try:
-        master_keys_cached.unpersist()
+        cerebro.unpersist()
     except Exception:
         pass
 
     return base_pivote_final
 
 
-# Uso en prod (pasa TU spark; si no, puede abrir otra app y la UI sale vacía):
-#   genera_layout(semana_cmp, semana_cltv, mes, semana_lae, "overwrite", spark=spark, refrescar=False)
+# Alias por si en el notebook la pegaste como genera_layout_optimized
+genera_layout_optimized = genera_layout
+
+
+# Uso en prod (pasa TU spark; si no, abre otra app y Stages sale vacío):
+#   genera_layout(202630, 202626, 202605, 202627, "append", tabla_out, spark, refrescar=False)
 #
-# Si la celda se queda muda y Stages está vacío, mira el último [HH:MM:SS] del print.
-# REFRESH de cd_dig_* no crea stages: usa refrescar=False.
+# NO hagas count() de cerebro/masters a mano: el driver de 1g se traba
+# colectando el broadcast y no aparecen stages. El job grande es el COUNT final.
