@@ -76,7 +76,39 @@ def _icu(i: int, k: int = 0) -> str:
     return f"ICU{i:08d}{k}"
 
 
-def poblar_tablas(spark: SparkSession, n: int, incluir_duplicados: bool = False):
+def _ruido_cuarteles(spark: SparkSession, n_ruido: int):
+    return (
+        spark.range(n_ruido)
+        .select(
+            F.concat(F.lit("9-9-9-"), F.lpad(F.col("id").cast("string"), 8, "0")).alias("id_cliente"),
+            F.concat(F.lit("QN"), (F.col("id") % 9).cast("string")).alias("cuartel"),
+            (F.lit(20220101) + (F.col("id") % 365).cast("int")).alias("fec_surtimiento"),
+        )
+    )
+
+
+def _ruido_digital(spark: SparkSession, n_ruido: int):
+    return (
+        spark.range(n_ruido)
+        .select(
+            F.concat(F.lit("9-9-9-"), F.lpad(F.col("id").cast("string"), 8, "0")).alias("id_cliente_unico"),
+            F.concat(F.lit("ICUNOISE"), F.lpad(F.col("id").cast("string"), 8, "0")).alias("id_icu"),
+            F.lit("2023-06-01 00:00:00").alias("tms_alta"),
+        )
+    )
+
+
+def _ruido_txn(spark: SparkSession, n_ruido: int):
+    return (
+        spark.range(n_ruido)
+        .select(
+            F.concat(F.lit("ICUNOISE"), F.lpad(F.col("id").cast("string"), 8, "0")).alias("id_icu"),
+            F.lit("2024-01-03 12:00:00").alias("tms_operacion"),
+        )
+    )
+
+
+def poblar_tablas(spark: SparkSession, n: int, incluir_duplicados: bool = False, ruido: int = 0):
     """
     Construye un universo determinista.
 
@@ -185,17 +217,32 @@ def poblar_tablas(spark: SparkSession, n: int, incluir_duplicados: bool = False)
                 float(i % 5), float(i % 7), float(i % 29),
                 int(i % 40),
             ))
-    _write(
-        spark.createDataFrame(
-            rbs,
-            "id_master STRING, num_periodo_sem INT, rentabilidad_credito DOUBLE, "
-            "interes_pagado DOUBLE, intereses_cobrados DOUBLE, reserva DOUBLE, "
-            "margen_cliente DOUBLE, costo_gestion_calle DOUBLE, "
-            "costo_gestion_llamada DOUBLE, costo_gestion_sms DOUBLE, "
-            "papm DOUBLE, atraso INT",
-        ),
-        "ws_aarent_analitica.cu_renta_credito_operaciones_cliente",
+    df_rbs = spark.createDataFrame(
+        rbs,
+        "id_master STRING, num_periodo_sem INT, rentabilidad_credito DOUBLE, "
+        "interes_pagado DOUBLE, intereses_cobrados DOUBLE, reserva DOUBLE, "
+        "margen_cliente DOUBLE, costo_gestion_calle DOUBLE, "
+        "costo_gestion_llamada DOUBLE, costo_gestion_sms DOUBLE, "
+        "papm DOUBLE, atraso INT",
     )
+    if ruido > 0:
+        df_rbs = df_rbs.unionByName(
+            spark.range(ruido).select(
+                F.concat(F.lit("MNOISE"), F.lpad(F.col("id").cast("string"), 8, "0")).alias("id_master"),
+                F.lit(202350).alias("num_periodo_sem"),
+                F.lit(1.0).alias("rentabilidad_credito"),
+                F.lit(1.0).alias("interes_pagado"),
+                F.lit(1.0).alias("intereses_cobrados"),
+                F.lit(1.0).alias("reserva"),
+                F.lit(1.0).alias("margen_cliente"),
+                F.lit(1.0).alias("costo_gestion_calle"),
+                F.lit(1.0).alias("costo_gestion_llamada"),
+                F.lit(1.0).alias("costo_gestion_sms"),
+                F.lit(1.0).alias("papm"),
+                F.lit(1).alias("atraso"),
+            )
+        )
+    _write(df_rbs, "ws_aarent_analitica.cu_renta_credito_operaciones_cliente")
 
     nbco = []
     for i in range(n):
@@ -242,16 +289,7 @@ def poblar_tablas(spark: SparkSession, n: int, incluir_duplicados: bool = False)
             txn.append((_icu(i, 1), op_old.strftime("%Y-%m-%d %H:%M:%S")))
         txn.append((_icu(i, 99), fecha_str_corte))
 
-    _write(
-        spark.createDataFrame(digital, "id_cliente_unico STRING, id_icu STRING, tms_alta STRING"),
-        "cd_baz_bdclientes.cd_dig_clientes",
-    )
-    _write(
-        spark.createDataFrame(txn, "id_icu STRING, tms_operacion STRING"),
-        "cd_baz_bdclientes.cd_dig_txn_financieras",
-    )
-
-    hist_por_cu = 15 if n >= 500 else 4
+    hist_por_cu = 12 if n >= 500 else 4
     cuarteles = []
     for i in range(n):
         if i % 5 == 0:
@@ -264,10 +302,23 @@ def poblar_tablas(spark: SparkSession, n: int, incluir_duplicados: bool = False)
         cuarteles.append((_cu(i), "QMAX", 20240105))
         cuarteles.append((_cu(i), "QAFTER", 20240120))
         cuarteles.append((_cu(i), "QOLD", 19010101))
-    _write(
-        spark.createDataFrame(cuarteles, "id_cliente STRING, cuartel STRING, fec_surtimiento INT"),
-        "ws_celcobd_analitica.tt_1117735_pedidoshistoricos_cuartel",
+
+    df_digital = spark.createDataFrame(
+        digital, "id_cliente_unico STRING, id_icu STRING, tms_alta STRING"
     )
+    df_txn = spark.createDataFrame(txn, "id_icu STRING, tms_operacion STRING")
+    df_cuarteles = spark.createDataFrame(
+        cuarteles, "id_cliente STRING, cuartel STRING, fec_surtimiento INT"
+    )
+
+    if ruido > 0:
+        df_digital = df_digital.unionByName(_ruido_digital(spark, ruido))
+        df_txn = df_txn.unionByName(_ruido_txn(spark, ruido))
+        df_cuarteles = df_cuarteles.unionByName(_ruido_cuarteles(spark, ruido))
+
+    _write(df_digital, "cd_baz_bdclientes.cd_dig_clientes")
+    _write(df_txn, "cd_baz_bdclientes.cd_dig_txn_financieras")
+    _write(df_cuarteles, "ws_celcobd_analitica.tt_1117735_pedidoshistoricos_cuartel")
 
 
 def genera_layout_base(semana_cmp, semana_cltv, mes, semana_lae, modo, spark, escribir=False, tabla_out=None):
@@ -469,7 +520,8 @@ def comparar(df_base, df_opt):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n", type=int, default=400, help="clientes sintéticos para equivalencia")
-    parser.add_argument("--n-perf", type=int, default=8000, help="clientes sintéticos para timing")
+    parser.add_argument("--n-perf", type=int, default=4000, help="clientes sintéticos para timing")
+    parser.add_argument("--ruido", type=int, default=1_500_000, help="filas extra fuera del pivote")
     args = parser.parse_args()
 
     warehouse = tempfile.mkdtemp(prefix="spark-wh-")
@@ -480,7 +532,7 @@ def main():
         print("=" * 72)
         print(f"EQUIVALENCIA  n={args.n} (sin duplicados ambiguos de rand())")
         print("=" * 72)
-        poblar_tablas(spark, args.n, incluir_duplicados=False)
+        poblar_tablas(spark, args.n, incluir_duplicados=False, ruido=0)
 
         t0 = time.time()
         df_base = genera_layout_base(SEMANA_CMP, SEMANA, MES, SEMANA_LAE, "overwrite", spark)
@@ -501,10 +553,10 @@ def main():
         print(f"tiempo base={t_base:.2f}s  opt={t_opt:.2f}s  (n={args.n}, filas_out={n_base})")
 
         print("=" * 72)
-        print(f"PERFORMANCE   n={args.n_perf}")
+        print(f"PERFORMANCE   n={args.n_perf}  ruido={args.ruido}")
         print("=" * 72)
         spark.catalog.clearCache()
-        poblar_tablas(spark, args.n_perf, incluir_duplicados=False)
+        poblar_tablas(spark, args.n_perf, incluir_duplicados=False, ruido=args.ruido)
 
         t0 = time.time()
         df_base_p = genera_layout_base(SEMANA_CMP, SEMANA, MES, SEMANA_LAE, "overwrite", spark)

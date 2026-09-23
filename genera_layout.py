@@ -71,7 +71,6 @@ def _sesion_spark(spark=None):
         "spark.sql.adaptive.advisoryPartitionSizeInBytes": "64m",
         "spark.sql.adaptive.coalescePartitions.minPartitionNum": "4",
         "spark.sql.adaptive.coalescePartitions.initialPartitionNum": "36",
-        "spark.sql.shuffle.partitions": "36",
         "spark.sql.autoBroadcastJoinThreshold": str(64 * 1024 * 1024),
         "spark.sql.adaptive.autoBroadcastJoinThreshold": str(64 * 1024 * 1024),
         "spark.sql.broadcastTimeout": "600",
@@ -81,14 +80,15 @@ def _sesion_spark(spark=None):
     }
     for key, value in confs.items():
         session.conf.set(key, value)
+
+    # Solo baja el default clásico (200). Si el job ya trajo un valor afinado, no lo pisa.
+    try:
+        actuales = int(session.conf.get("spark.sql.shuffle.partitions"))
+    except Exception:
+        actuales = 200
+    if actuales >= 100:
+        session.conf.set("spark.sql.shuffle.partitions", "36")
     return session
-
-
-def _maybe_broadcast(df, n_rows, limite=1_500_000):
-    """Broadcast solo si cabe cómodo en el driver de 1g."""
-    if n_rows <= limite:
-        return F.broadcast(df)
-    return df
 
 
 def _dedup_rand(df, llave="cliente_unico"):
@@ -172,13 +172,9 @@ def genera_layout(
         """
     )
 
-    pivot_keys_cached = (
-        base_pivote.select("cliente_unico")
-        .distinct()
-        .persist(StorageLevel.MEMORY_AND_DISK)
-    )
-    n_cu = pivot_keys_cached.count()
-    pivot_keys = _maybe_broadcast(pivot_keys_cached, n_cu)
+    # AQE hace broadcast de este set si cabe en 64m. No se materializa
+    # con un count extra: vive en el mismo job que el count/write final.
+    pivot_keys = base_pivote.select("cliente_unico").distinct()
 
     # ----------------------------------------------------------------------
     # Cerebro: recorte por semana + CUs del pivote, luego 1 fila random
@@ -204,14 +200,11 @@ def genera_layout(
     )
     cerebro = _dedup_rand(cerebro, "cliente_unico")
 
-    master_keys_cached = (
+    master_keys = (
         cerebro.select("id_master")
         .where(F.col("id_master").isNotNull())
         .distinct()
-        .persist(StorageLevel.MEMORY_AND_DISK)
     )
-    n_master = master_keys_cached.count()
-    master_keys = _maybe_broadcast(master_keys_cached, n_master)
 
     # ----------------------------------------------------------------------
     # LAE recortado al pivote
@@ -292,16 +285,19 @@ def genera_layout(
     ).join(pivot_keys, on="cliente_unico", how="inner")
 
     icu_keys = digital.select("id_icu").distinct()
+    # Primero recorta por ICU del pivote; el DISTINCT global de 30 días es carísimo.
     uso = (
         spark.sql(
             f"""
-            SELECT DISTINCT id_icu, 1 AS ind_digital_uso
+            SELECT id_icu
             FROM {TBL_TXN}
             WHERE tms_operacion > DATE_ADD('{fecha_str}', -30)
               AND tms_operacion <= '{fecha_str}'
             """
         )
         .join(icu_keys, on="id_icu", how="left_semi")
+        .distinct()
+        .withColumn("ind_digital_uso", F.lit(1))
     )
 
     digital_uso_agg = (
@@ -375,28 +371,29 @@ def genera_layout(
         .drop("cliente_unico")
     )
 
-    # Un solo valor de num_periodo_sem: 9 archivos (~1 por core) evitan
-    # cientos de part-files chicos sin crear archivos de decenas de GB.
-    base_pivote_final = base_pivote_final.coalesce(9)
+    # MEMORY_AND_DISK: el cache() original (MEMORY_ONLY) se evicta fácil con 9g*3
+    # y recomputa el join completo. Count + write reusan este persist.
     base_pivote_final.persist(StorageLevel.MEMORY_AND_DISK)
     print(base_pivote_final.count())
 
     if escribir:
         (
-            base_pivote_final.write
+            base_pivote_final.coalesce(9)
+            .write
             .format("parquet")
             .mode(modo)
             .partitionBy("num_periodo_sem")
             .saveAsTable(tabla_out)
         )
 
-    try:
-        pivot_keys_cached.unpersist()
-    except Exception:
-        pass
-    try:
-        master_keys_cached.unpersist()
-    except Exception:
-        pass
-
     return base_pivote_final
+
+
+# Uso (misma firma que la versión original):
+#   genera_layout(semana_cmp, semana_cltv, mes, semana_lae, modo)
+#
+# Ejemplo:
+#   genera_layout(202401, 202401, 202401, 202401, "overwrite")
+#
+# Opcionales:
+#   genera_layout(..., tabla_out="db.mi_tabla", spark=spark, escribir=True, refrescar=True)
