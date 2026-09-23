@@ -246,8 +246,6 @@ def genera_layout(
         F.col("id_master").asc_nulls_last(),
         F.col("antig_tl").asc_nulls_last(),
     )
-    # Persist sin count: el COUNT/WRITE final materializa una vez y se reusa.
-    cerebro = cerebro.persist(StorageLevel.MEMORY_AND_DISK)
 
     master_keys = (
         cerebro.select("id_master")
@@ -416,20 +414,11 @@ def genera_layout(
         .drop("cliente_unico")
     )
 
-    # MEMORY_AND_DISK: el cache() original (MEMORY_ONLY) se evicta fácil con 9g*3
-    # y recomputa el join completo. Count + write reusan este persist.
-    # Repartition ANTES del persist: el count tiene que verse /24, no /1.
-    base_pivote_final = base_pivote_final.repartition(N_PARTS)
-    base_pivote_final.persist(StorageLevel.MEMORY_AND_DISK)
-    spark.sparkContext.setJobDescription("04_count_final")
-    _paso(f"COUNT final — si ves (0+1)/1 otra vez, el plan se colapsó a 1 partición")
-    n_final = base_pivote_final.count()
-    _paso(f"COUNT final OK  filas={n_final}  parts={base_pivote_final.rdd.getNumPartitions()}")
-    print(n_final)
-
+    # Un solo action: WRITE. persist+count de 8.1M filas anchas en 8g
+    # tira a disco y te come ~40 min; el write posterior ya era "gratis".
     if escribir:
-        spark.sparkContext.setJobDescription("05_write")
-        _paso(f"WRITE {tabla_out} modo={modo}")
+        spark.sparkContext.setJobDescription("04_write")
+        _paso(f"WRITE {tabla_out} modo={modo} — este es el job grande")
         (
             base_pivote_final.write
             .format("parquet")
@@ -438,11 +427,16 @@ def genera_layout(
             .saveAsTable(tabla_out)
         )
         _paso(f"WRITE OK  {tabla_out}")
-
-    try:
-        cerebro.unpersist()
-    except Exception:
-        pass
+        n_final = (
+            spark.table(tabla_out)
+            .where(F.col("num_periodo_sem") == semana)
+            .count()
+        )
+        _paso(f"COUNT post-write  filas={n_final}")
+        print(n_final)
+    else:
+        n_final = base_pivote_final.count()
+        print(n_final)
 
     return base_pivote_final
 
