@@ -39,27 +39,27 @@ def _paso(msg):
 # Sesión (opcional). Si ya tienes `spark` creado afuera, no hace falta llamarla.
 # ---------------------------------------------------------------------------
 def crear_spark():
-    """Sesión para 9 CPU / 32 GB. Hay que crear la sesión de cero
-    (spark.stop() o restart del kernel): getOrCreate() ignora memory si
-    ya existe una app con 1g de driver.
+    """YARN/Hive: dynamic allocation ON. No uses executor.instances —
+    si apagas dyn alloc el Stage 0 se queda en (0+1)/1 esperando containers.
+    spark.stop() antes: getOrCreate() no aplica un driver nuevo.
     """
     return (
         SparkSession.builder
         .appName("create_nbco_base")
         .enableHiveSupport()
-        # 2 exec fijos: 6 cores de cómputo + 1 para el driver + 2 para el OS.
-        # 3×3 cores × 9g + overhead se come los 32g y deja el driver en 1g.
-        .config("spark.dynamicAllocation.enabled", "false")
-        .config("spark.executor.instances", "2")
+        .config("spark.dynamicAllocation.enabled", "true")
+        .config("spark.dynamicAllocation.minExecutors", "2")
+        .config("spark.dynamicAllocation.maxExecutors", "3")
+        .config("spark.dynamicAllocation.initialExecutors", "2")
+        .config("spark.dynamicAllocation.shuffleTracking.enabled", "true")
         .config("spark.executor.cores", "3")
-        .config("spark.executor.memory", "10g")
+        .config("spark.executor.memory", "8g")
         .config("spark.executor.memoryOverhead", "2g")
         .config("spark.driver.memory", "4g")
         .config("spark.driver.maxResultSize", "2g")
         .config("spark.sql.shuffle.partitions", "24")
         .config("spark.sql.adaptive.enabled", "true")
         .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
-        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
         .getOrCreate()
     )
 
@@ -446,9 +446,10 @@ def genera_layout(
 genera_layout_optimized = genera_layout
 
 
-# Recursos (9 CPU / 32 GB): primero PARA la sesión vieja, si no el driver sigue en 1g:
+# Recursos (YARN): NO pongas executor.instances ni dynamicAllocation=false.
 #   spark.stop()
 #   spark = crear_spark()
+#   # UI → Executors: espera a ver 2 ALIVE, luego:
 #   genera_layout(202630, 202626, 202605, 202627, "append", tabla_out, spark, refrescar=False)
 #
 # NO hagas count() de cerebro/masters a mano: el driver de 1g se traba
