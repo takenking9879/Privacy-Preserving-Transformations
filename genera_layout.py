@@ -39,17 +39,27 @@ def _paso(msg):
 # Sesión (opcional). Si ya tienes `spark` creado afuera, no hace falta llamarla.
 # ---------------------------------------------------------------------------
 def crear_spark():
+    """Sesión para 9 CPU / 32 GB. Hay que crear la sesión de cero
+    (spark.stop() o restart del kernel): getOrCreate() ignora memory si
+    ya existe una app con 1g de driver.
+    """
     return (
         SparkSession.builder
         .appName("create_nbco_base")
         .enableHiveSupport()
-        .config("spark.dynamicAllocation.enabled", "true")
-        .config("spark.dynamicAllocation.minExecutors", "1")
-        .config("spark.dynamicAllocation.maxExecutors", "3")
-        .config("spark.dynamicAllocation.shuffleTracking.enabled", "true")
+        # 2 exec fijos: 6 cores de cómputo + 1 para el driver + 2 para el OS.
+        # 3×3 cores × 9g + overhead se come los 32g y deja el driver en 1g.
+        .config("spark.dynamicAllocation.enabled", "false")
+        .config("spark.executor.instances", "2")
         .config("spark.executor.cores", "3")
-        .config("spark.executor.memory", "9g")
-        .config("spark.driver.memory", "1g")
+        .config("spark.executor.memory", "10g")
+        .config("spark.executor.memoryOverhead", "2g")
+        .config("spark.driver.memory", "4g")
+        .config("spark.driver.maxResultSize", "2g")
+        .config("spark.sql.shuffle.partitions", "24")
+        .config("spark.sql.adaptive.enabled", "true")
+        .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
         .getOrCreate()
     )
 
@@ -70,8 +80,7 @@ def _sesion_spark(spark=None):
             except Exception:
                 session = SparkSession.builder.appName("create_nbco_base").getOrCreate()
 
-    # AQE + menos particiones de shuffle (9 cores efectivos: 3 exec * 3 cores).
-    # El default de 200 genera muchos archivos/tareas chicas y satura CPU/RAM.
+    # AQE. Shuffle 24 = ~4 tasks por core con 2 exec × 3 cores.
     confs = {
         "spark.sql.adaptive.enabled": "true",
         "spark.sql.adaptive.skewJoin.enabled": "true",
@@ -79,9 +88,7 @@ def _sesion_spark(spark=None):
         "spark.sql.adaptive.localShuffleReader.enabled": "true",
         "spark.sql.adaptive.advisoryPartitionSizeInBytes": "64m",
         "spark.sql.adaptive.coalescePartitions.minPartitionNum": "4",
-        "spark.sql.adaptive.coalescePartitions.initialPartitionNum": "36",
-        # 16m: el driver de prod tiene 1g; 64m de broadcast lo puede congelar
-        # (collect al driver, cero stages en la UI).
+        "spark.sql.adaptive.coalescePartitions.initialPartitionNum": "24",
         "spark.sql.autoBroadcastJoinThreshold": str(16 * 1024 * 1024),
         "spark.sql.adaptive.autoBroadcastJoinThreshold": str(16 * 1024 * 1024),
         "spark.sql.broadcastTimeout": "600",
@@ -92,13 +99,12 @@ def _sesion_spark(spark=None):
     for key, value in confs.items():
         session.conf.set(key, value)
 
-    # Solo baja el default clásico (200). Si el job ya trajo un valor afinado, no lo pisa.
     try:
         actuales = int(session.conf.get("spark.sql.shuffle.partitions"))
     except Exception:
         actuales = 200
     if actuales >= 100:
-        session.conf.set("spark.sql.shuffle.partitions", "36")
+        session.conf.set("spark.sql.shuffle.partitions", "24")
     return session
 
 
@@ -419,7 +425,7 @@ def genera_layout(
         spark.sparkContext.setJobDescription("05_write")
         _paso(f"WRITE {tabla_out} modo={modo}")
         (
-            base_pivote_final.coalesce(9)
+            base_pivote_final.coalesce(6)
             .write
             .format("parquet")
             .mode(modo)
@@ -440,7 +446,9 @@ def genera_layout(
 genera_layout_optimized = genera_layout
 
 
-# Uso en prod (pasa TU spark; si no, abre otra app y Stages sale vacío):
+# Recursos (9 CPU / 32 GB): primero PARA la sesión vieja, si no el driver sigue en 1g:
+#   spark.stop()
+#   spark = crear_spark()
 #   genera_layout(202630, 202626, 202605, 202627, "append", tabla_out, spark, refrescar=False)
 #
 # NO hagas count() de cerebro/masters a mano: el driver de 1g se traba
