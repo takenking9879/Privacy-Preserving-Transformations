@@ -21,10 +21,18 @@ Equivalencia vs. la versión base:
     versión siempre elige la misma fila; la base no.
 """
 
+import sys
+from datetime import datetime
+
 from pyspark import StorageLevel
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
+
+
+def _paso(msg):
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
+    sys.stdout.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -111,7 +119,7 @@ def genera_layout(
     tabla_out=None,
     spark=None,
     escribir=True,
-    refrescar=True,
+    refrescar=False,
 ):
     # ======================================================================
     # VARIABLES DE TABLAS (FROM) — edita aquí
@@ -139,14 +147,35 @@ def genera_layout(
         tabla_out = TABLA_OUT
 
     spark = _sesion_spark(spark)
+    try:
+        _paso(
+            f"Spark listo  app={spark.sparkContext.applicationId}  "
+            f"ui={getattr(spark.sparkContext, 'uiWebUrl', None)}"
+        )
+    except Exception as exc:
+        _paso(f"Spark listo (no pude leer applicationId: {exc})")
+
+    spark.sparkContext.setJobDescription("00_heartbeat_select1")
+    spark.sql("SELECT 1 AS ok").collect()
+    _paso("Heartbeat SELECT 1 OK — si no viste 1 stage, estás en otra Spark UI")
 
     if refrescar:
+        _paso(
+            f"REFRESH {TBL_DIGITAL} y {TBL_TXN} — esto NO crea stages; "
+            "si se queda aquí, mata la celda y llama con refrescar=False"
+        )
         spark.sql(f"REFRESH TABLE {TBL_DIGITAL}")
+        _paso(f"REFRESH OK {TBL_DIGITAL}")
         spark.sql(f"REFRESH TABLE {TBL_TXN}")
+        _paso(f"REFRESH OK {TBL_TXN}")
+    else:
+        _paso("REFRESH omitido (refrescar=False)")
 
     # ----------------------------------------------------------------------
     # Fechas (tabla chica: collect de ~7 filas, igual que la base)
     # ----------------------------------------------------------------------
+    spark.sparkContext.setJobDescription("01_fechas")
+    _paso(f"Leyendo fechas semana={semana} de {TBL_FECHAS}")
     fechas = spark.sql(
         f"SELECT fec_num FROM {TBL_FECHAS} WHERE num_periodo_sem={semana}"
     )
@@ -158,6 +187,7 @@ def genera_layout(
     fecha_str = f"{str(fecha_num)[:4]}-{str(fecha_num)[4:6]}-{str(fecha_num)[6:]}"
     semana_ini = int((int(semana / 100) - 1) * 100 + semana % 100)
 
+    _paso(f"fechas OK  semana_ini={semana_ini}  fecha_num={fecha_num}  dias={dias_semana_num}")
     print(semana_ini)
     print(fecha_num, fecha_str)
     print(dias_semana_num)
@@ -181,7 +211,10 @@ def genera_layout(
         .distinct()
         .persist(StorageLevel.MEMORY_AND_DISK)
     )
-    pivot_keys_cached.count()
+    spark.sparkContext.setJobDescription("02_pivot_keys")
+    _paso(f"Materializando CUs del pivote ({TBL_PIVOTE})")
+    n_cu = pivot_keys_cached.count()
+    _paso(f"Pivote OK  CUs={n_cu}")
     pivot_keys = F.broadcast(pivot_keys_cached)
 
     # ----------------------------------------------------------------------
@@ -218,7 +251,10 @@ def genera_layout(
         .distinct()
         .persist(StorageLevel.MEMORY_AND_DISK)
     )
-    master_keys_cached.count()
+    spark.sparkContext.setJobDescription("03_master_keys_cerebro")
+    _paso("Materializando id_master (cerebro + dedup)")
+    n_master = master_keys_cached.count()
+    _paso(f"Masters OK  id_master={n_master}")
     master_keys = F.broadcast(master_keys_cached)
 
     # ----------------------------------------------------------------------
@@ -380,9 +416,15 @@ def genera_layout(
     # MEMORY_AND_DISK: el cache() original (MEMORY_ONLY) se evicta fácil con 9g*3
     # y recomputa el join completo. Count + write reusan este persist.
     base_pivote_final.persist(StorageLevel.MEMORY_AND_DISK)
-    print(base_pivote_final.count())
+    spark.sparkContext.setJobDescription("04_count_final")
+    _paso("COUNT final (aquí sí sale el job grande en Stages)")
+    n_final = base_pivote_final.count()
+    _paso(f"COUNT final OK  filas={n_final}")
+    print(n_final)
 
     if escribir:
+        spark.sparkContext.setJobDescription("05_write")
+        _paso(f"WRITE {tabla_out} modo={modo}")
         (
             base_pivote_final.coalesce(9)
             .write
@@ -391,6 +433,7 @@ def genera_layout(
             .partitionBy("num_periodo_sem")
             .saveAsTable(tabla_out)
         )
+        _paso(f"WRITE OK  {tabla_out}")
 
     try:
         pivot_keys_cached.unpersist()
@@ -404,11 +447,8 @@ def genera_layout(
     return base_pivote_final
 
 
-# Uso (misma firma que la versión original):
-#   genera_layout(semana_cmp, semana_cltv, mes, semana_lae, modo)
+# Uso en prod (pasa TU spark; si no, puede abrir otra app y la UI sale vacía):
+#   genera_layout(semana_cmp, semana_cltv, mes, semana_lae, "overwrite", spark=spark, refrescar=False)
 #
-# Ejemplo:
-#   genera_layout(202401, 202401, 202401, 202401, "overwrite")
-#
-# Opcionales:
-#   genera_layout(..., tabla_out="db.mi_tabla", spark=spark, escribir=True, refrescar=True)
+# Si la celda se queda muda y Stages está vacío, mira el último [HH:MM:SS] del print.
+# REFRESH de cd_dig_* no crea stages: usa refrescar=False.
