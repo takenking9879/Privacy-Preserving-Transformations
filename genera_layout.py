@@ -87,7 +87,7 @@ def _sesion_spark(spark=None):
         "spark.sql.adaptive.coalescePartitions.enabled": "true",
         "spark.sql.adaptive.localShuffleReader.enabled": "true",
         "spark.sql.adaptive.advisoryPartitionSizeInBytes": "64m",
-        "spark.sql.adaptive.coalescePartitions.minPartitionNum": "4",
+        "spark.sql.adaptive.coalescePartitions.minPartitionNum": "8",
         "spark.sql.adaptive.coalescePartitions.initialPartitionNum": "24",
         "spark.sql.autoBroadcastJoinThreshold": str(16 * 1024 * 1024),
         "spark.sql.adaptive.autoBroadcastJoinThreshold": str(16 * 1024 * 1024),
@@ -203,19 +203,19 @@ def genera_layout(
     # ----------------------------------------------------------------------
     # Universo de clientes (se reutiliza para recortar TODAS las fact tables)
     # ----------------------------------------------------------------------
+    N_PARTS = 24
+    # El pivote llega en 1 archivo → 1 partición. Si AQE hace broadcast de
+    # cerebro/lae/digital encima, TODO el COUNT corre en 1 task (~37 min).
     base_pivote = spark.sql(
         f"""
         SELECT cliente_unico, fecha_salida
         FROM {TBL_PIVOTE}
         WHERE fecha_salida={semana_cmp}
         """
-    )
+    ).repartition(N_PARTS, "cliente_unico")
 
-    # Distinct lazy. NO count() ni F.broadcast(): el driver tiene 1g y
-    # collect del pivote para broadcast se cuelga SIN crear stages.
-    # AQE decide broadcast solo si el set cabe en 64m.
     pivot_keys = base_pivote.select("cliente_unico").distinct()
-    _paso("Pivote definido (lazy, sin count/broadcast)")
+    _paso(f"Pivote reparticionado a {N_PARTS} (lazy)")
 
     # ----------------------------------------------------------------------
     # Cerebro: recorte por semana + CUs del pivote, dedup estable.
@@ -314,6 +314,7 @@ def genera_layout(
         spark.table(TBL_NBCO)
         .where(F.col("num_periodo_mes") == mes)
         .drop("fcusuariocreacion", "fdfechacreacion", "num_periodo_mes")
+        .repartition(N_PARTS, "id_master")
     )
 
     # ----------------------------------------------------------------------
@@ -387,7 +388,10 @@ def genera_layout(
     base_pivote_s0 = base_pivote.join(cerebro, on=["cliente_unico"], how="left")
     base_pivote_s1 = base_pivote_s0.join(lae, on=["cliente_unico"], how="left")
     base_pivote_s2 = base_pivote_s1.join(digital_uso_agg, on="cliente_unico", how="left")
-    base_pivote_s3 = base_pivote_s2.join(cuarteles_cliente, on="cliente_unico", how="left")
+    base_pivote_s3 = (
+        base_pivote_s2.join(cuarteles_cliente, on="cliente_unico", how="left")
+        .repartition(N_PARTS, "id_master")
+    )
 
     base_pivote_master = nbco.join(cltv_futuro_hog, on=["id_master"], how="left")
     base_pivote_master_s1 = base_pivote_master.join(cltv_futuro_con, on=["id_master"], how="left")
@@ -414,19 +418,20 @@ def genera_layout(
 
     # MEMORY_AND_DISK: el cache() original (MEMORY_ONLY) se evicta fácil con 9g*3
     # y recomputa el join completo. Count + write reusan este persist.
+    # Repartition ANTES del persist: el count tiene que verse /24, no /1.
+    base_pivote_final = base_pivote_final.repartition(N_PARTS)
     base_pivote_final.persist(StorageLevel.MEMORY_AND_DISK)
     spark.sparkContext.setJobDescription("04_count_final")
-    _paso("COUNT final (aquí sí sale el job grande en Stages)")
+    _paso(f"COUNT final — si ves (0+1)/1 otra vez, el plan se colapsó a 1 partición")
     n_final = base_pivote_final.count()
-    _paso(f"COUNT final OK  filas={n_final}")
+    _paso(f"COUNT final OK  filas={n_final}  parts={base_pivote_final.rdd.getNumPartitions()}")
     print(n_final)
 
     if escribir:
         spark.sparkContext.setJobDescription("05_write")
         _paso(f"WRITE {tabla_out} modo={modo}")
         (
-            base_pivote_final.coalesce(6)
-            .write
+            base_pivote_final.write
             .format("parquet")
             .mode(modo)
             .partitionBy("num_periodo_sem")
