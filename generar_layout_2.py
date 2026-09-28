@@ -25,6 +25,7 @@ La fuente de verdad es MAX/SHOW TABLES de cada tabla (equipos desfasados).
 
 from __future__ import annotations
 
+import builtins
 import sys
 from datetime import date, datetime
 from types import SimpleNamespace
@@ -165,7 +166,7 @@ def mes_nbco_por_regla(hoy=None):
 
 def mes_de_semana(semana):
     """Aprox YYYYMM a partir de YYYYWW (la semana no cruza de año en este código)."""
-    return int(semana) // 100 * 100 + min(12, max(1, (int(semana) % 100 + 3) // 4))
+    return int(semana) // 100 * 100 + builtins.min(12, builtins.max(1, (int(semana) % 100 + 3) // 4))
 
 
 # ===========================================================================
@@ -207,7 +208,7 @@ def _max_particion(spark, tabla, col, tope=None):
         return None
     if tope is not None:
         vals = [v for v in vals if v <= int(tope)]
-    return max(vals) if vals else None
+    return builtins.max(vals) if vals else None
 
 
 def _semanas_cltv_en_catalogo(spark, tpl_hog, tope, n_probar=16):
@@ -373,10 +374,10 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
     mes_insumo = _mes_de_semana_cat(spark, semana_cmp, src["fechas"])
     mes_regla = mes_nbco_por_regla(fecha_hoy)
     max_nbco = _max_particion(
-        spark, src["nbco"], "num_periodo_mes", tope=min(mes_insumo, mes_regla)
+        spark, src["nbco"], "num_periodo_mes", tope=builtins.min(mes_insumo, mes_regla)
     )
     candidatos = [m for m in (mes_regla, mes_insumo, max_nbco) if m is not None]
-    mes_nbco = min(candidatos) if candidatos else None
+    mes_nbco = builtins.min(candidatos) if candidatos else None
     if max_nbco is not None and mes_regla > max_nbco:
         alertas.append(
             f"NBCO: la regla del día 5 sugiere {mes_regla} pero la tabla "
@@ -559,7 +560,7 @@ def genera_cuartel_por_cliente(
     dias = [r.fec_num for r in fechas.collect()]
     if not dias:
         raise ValueError(f"Sin fechas para semana {semana_ref}")
-    fecha_num = max(dias)
+    fecha_num = builtins.max(dias)
 
     pivot_keys = None
     if solo_pivote:
