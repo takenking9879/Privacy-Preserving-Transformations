@@ -25,7 +25,6 @@ La fuente de verdad es MAX/SHOW TABLES de cada tabla (equipos desfasados).
 
 from __future__ import annotations
 
-import re
 import sys
 from datetime import date, datetime
 from types import SimpleNamespace
@@ -170,64 +169,58 @@ def mes_de_semana(semana):
 
 
 # ===========================================================================
-# Lectura de metadatos (lo que SÍ hay en Hive)
+# Lectura de metadatos (barato: metastore / SHOW PARTITIONS, NUNCA scan)
 # ===========================================================================
 def _existe_tabla(spark, nombre):
+    """Solo catálogo. DESCRIBE/MAX sobre cerebro o el schema entero cuelga la celda."""
     nombre = nombre.replace("`", "")
     try:
-        spark.sql(f"DESCRIBE TABLE {nombre}").limit(1).collect()
-        return True
+        return bool(spark.catalog.tableExists(nombre))
     except Exception:
-        try:
-            return spark.catalog.tableExists(nombre)
-        except Exception:
-            return False
+        return False
 
 
-def _max_int(spark, tabla, col, tope=None):
-    if not _existe_tabla(spark, tabla):
-        return None
-    q = f"SELECT MAX({col}) AS m FROM {tabla}"
-    if tope is not None:
-        q += f" WHERE {col} <= {int(tope)}"
+def _valores_particion(spark, tabla, col):
     try:
-        val = spark.sql(q).collect()[0]["m"]
-        return int(val) if val is not None else None
-    except Exception as exc:
-        _paso(f"WARN no pude leer MAX({col}) de {tabla}: {exc}")
+        spark.sparkContext.setJobDescription(f"sugerir_SHOW_PARTITIONS_{col}")
+        rows = spark.sql(f"SHOW PARTITIONS {tabla}").collect()
+    except Exception:
         return None
+    vals = []
+    for r in rows:
+        texto = r[0] if r[0] is not None else ""
+        for parte in str(texto).split("/"):
+            if parte.startswith(f"{col}="):
+                bruto = parte.split("=", 1)[1]
+                try:
+                    vals.append(int(bruto))
+                except ValueError:
+                    pass
+    return vals
 
 
-def _dom_tabla(nombre):
-    nombre = nombre.replace("`", "")
-    return nombre.split(".")[0] if "." in nombre else None
+def _max_particion(spark, tabla, col, tope=None):
+    _paso(f"  particiones {col} ← {tabla}")
+    vals = _valores_particion(spark, tabla, col)
+    if not vals:
+        _paso(f"  sin particiones de {col} (no escaneo la tabla)")
+        return None
+    if tope is not None:
+        vals = [v for v in vals if v <= int(tope)]
+    return max(vals) if vals else None
 
 
-def _semanas_cltv_en_catalogo(spark, tpl_hog, tope):
-    """Semanas para las que existe la tabla hog_{semana}_v2 (no el calendario)."""
-    db = _dom_tabla(tpl_hog)
+def _semanas_cltv_en_catalogo(spark, tpl_hog, tope, n_probar=16):
+    """Prueba hog_{semana} de la más nueva a la más vieja. Sin SHOW TABLES del schema."""
     encontradas = []
-    if db:
-        try:
-            rows = spark.sql(f"SHOW TABLES IN {db}").collect()
-            pat = re.compile(r"tt_1034848_cltv_futuros_hog_(\d{6})_v2$", re.I)
-            for r in rows:
-                name = r["tableName"] if "tableName" in r.asDict() else r[1]
-                m = pat.search(str(name))
-                if m:
-                    w = int(m.group(1))
-                    if w <= int(tope):
-                        encontradas.append(w)
-        except Exception as exc:
-            _paso(f"WARN SHOW TABLES {db}: {exc}")
-    if encontradas:
-        return sorted(set(encontradas), reverse=True)
-
-    # Fallback: prueba las últimas ~25 semanas del calendario
-    for w in _semanas_calendario_atras(spark, tope, n=25):
-        if _existe_tabla(spark, _tbl_semana(tpl_hog, w)):
+    for w in _semanas_calendario_atras(spark, tope, n=n_probar):
+        nombre = _tbl_semana(tpl_hog, w)
+        _paso(f"  ¿existe CLTV hog_{w}?")
+        if _existe_tabla(spark, nombre):
             encontradas.append(w)
-    return sorted(set(encontradas), reverse=True)
+            if len(encontradas) >= 6:
+                break
+    return encontradas
 
 
 def _semanas_calendario_atras(spark, tope, n=25, src=None):
@@ -319,14 +312,22 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
     src = fuentes()
     hoy_num = fecha_hoy_num(fecha_hoy)
     alertas = []
+    _paso(f"sugerir_parametros  hoy={hoy_num}  (solo metastore/particiones, sin scan)")
 
+    _paso("calendario fechas_cat…")
     semana_cal = _semana_domingo_max(spark, hoy_num, src["fechas"])
     if semana_cal is None:
         raise ValueError(f"Sin semanas en {src['fechas']} con fec_num <= {hoy_num}")
+    _paso(f"último domingo <= hoy: {semana_cal}")
 
-    max_pivote = _max_int(spark, src["pivote"], "fecha_salida", tope=semana_cal)
+    max_pivote = _max_particion(spark, src["pivote"], "fecha_salida", tope=semana_cal)
     if semana_cmp is None:
         semana_cmp = max_pivote or semana_cal
+        if max_pivote is None:
+            alertas.append(
+                "INSUMO: el pivote no está particionado por fecha_salida; "
+                f"uso el domingo de calendario {semana_cal}. Pasa semana_cmp=… si ya la sabes."
+            )
     semana_cmp = int(semana_cmp)
     if semana_cmp > semana_cal:
         alertas.append(
@@ -341,7 +342,7 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
         )
         semana_cmp = max_pivote
 
-    # CLTV: lo que hay en catálogo, no lo que "debería" haber
+    _paso("CLTV: existencias hog_{semana}…")
     semanas_cltv = _semanas_cltv_en_catalogo(spark, src["cltv_hog_tpl"], semana_cmp)
     semana_cltv = semanas_cltv[0] if semanas_cltv else None
     cal_atras = _semanas_calendario_atras(spark, semana_cmp, n=8, src=src["fechas"])
@@ -361,17 +362,19 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
                 f"{_tbl_semana(src['cltv_activo_tpl'], semana_cltv)}"
             )
 
-    max_cerebro = _max_int(spark, src["cerebro"], "num_periodo_sem", tope=semana_cmp)
+    max_cerebro = _max_particion(spark, src["cerebro"], "num_periodo_sem", tope=semana_cmp)
     if semana_cltv and max_cerebro and semana_cltv > max_cerebro:
         alertas.append(
             f"CEREBRO solo llega a {max_cerebro} < CLTV {semana_cltv}. "
             f"El layout usa cerebro en la semana CLTV."
         )
 
-    # NBCO
+    _paso("NBCO + LAE (particiones)…")
     mes_insumo = _mes_de_semana_cat(spark, semana_cmp, src["fechas"])
     mes_regla = mes_nbco_por_regla(fecha_hoy)
-    max_nbco = _max_int(spark, src["nbco"], "num_periodo_mes", tope=min(mes_insumo, mes_regla))
+    max_nbco = _max_particion(
+        spark, src["nbco"], "num_periodo_mes", tope=min(mes_insumo, mes_regla)
+    )
     candidatos = [m for m in (mes_regla, mes_insumo, max_nbco) if m is not None]
     mes_nbco = min(candidatos) if candidatos else None
     if max_nbco is not None and mes_regla > max_nbco:
@@ -379,14 +382,22 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
             f"NBCO: la regla del día 5 sugiere {mes_regla} pero la tabla "
             f"solo tiene hasta {max_nbco}."
         )
+    if max_nbco is None:
+        alertas.append(
+            "NBCO: no pude leer particiones num_periodo_mes; uso min(regla, mes insumo)."
+        )
     if mes_nbco is not None and mes_nbco > mes_insumo:
         alertas.append(f"NBCO {mes_nbco} no puede ser posterior al mes del insumo {mes_insumo}.")
         mes_nbco = mes_insumo
 
-    # LAE: sin regla de corte → MAX real <= insumo
-    semana_lae = _max_int(spark, src["lae"], "num_periodo_sem", tope=semana_cmp)
+    semana_lae = _max_particion(spark, src["lae"], "num_periodo_sem", tope=semana_cmp)
     if semana_lae is None:
-        alertas.append("LAE: no hay num_periodo_sem <= insumo.")
+        atras = _semanas_calendario_atras(spark, semana_cmp, n=3, src=src["fechas"])
+        semana_lae = atras[1] if len(atras) > 1 else semana_cmp
+        alertas.append(
+            f"LAE: sin particiones num_periodo_sem; sugerí {semana_lae} "
+            f"(semana previa de calendario). Confirma en la tabla."
+        )
     else:
         if semana_lae < semana_cmp:
             atras = _semanas_calendario_atras(spark, semana_cmp, n=12, src=src["fechas"])
@@ -594,7 +605,7 @@ def genera_layout(
     escribir=True,
     refrescar=False,
     grano="master",
-    sugerir_si_difiere=True,
+    sugerir_si_difiere=False,
 ):
     """
     grano='master'  — igual que la original (tira cliente_unico, inner NBCO).

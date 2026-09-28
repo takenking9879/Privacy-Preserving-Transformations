@@ -68,19 +68,19 @@ def test_sugerir_con_tablas_falsas():
 
         spark.createDataFrame(
             [(202630, "1-2-0-1")], "fecha_salida INT, cliente_unico STRING"
-        ).write.mode("overwrite").saveAsTable(src["pivote"])
+        ).write.mode("overwrite").partitionBy("fecha_salida").saveAsTable(src["pivote"])
 
         spark.createDataFrame(
-            [(202626,)], "num_periodo_sem INT"
-        ).write.mode("overwrite").saveAsTable(src["cerebro"])
+            [(202626, "x")], "num_periodo_sem INT, dummy STRING"
+        ).write.mode("overwrite").partitionBy("num_periodo_sem").saveAsTable(src["cerebro"])
 
         spark.createDataFrame(
             [("c", 202627)], "cliente_unico STRING, num_periodo_sem INT"
-        ).write.mode("overwrite").saveAsTable(src["lae"])
+        ).write.mode("overwrite").partitionBy("num_periodo_sem").saveAsTable(src["lae"])
 
         spark.createDataFrame(
             [("m", 202605)], "id_master STRING, num_periodo_mes INT"
-        ).write.mode("overwrite").saveAsTable(src["nbco"])
+        ).write.mode("overwrite").partitionBy("num_periodo_mes").saveAsTable(src["nbco"])
 
         # CLTV existe 202622 y 202626 (el bug: calendario tiene 202626)
         spark.createDataFrame([("M1", 1.0)], "id_master STRING, cltv DOUBLE").write.mode(
