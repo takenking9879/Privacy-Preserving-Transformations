@@ -4,7 +4,7 @@ generar_layout_2.py
 
 Copia este archivo al notebook.
 
-    # 1) Qué semanas/mes poner (mira tablas reales, no solo el calendario)
+    # 1) Qué semanas/mes poner (CLTV = fechas_cat; no la última hog que generaron)
     sug = sugerir_parametros(spark)
     # 2) Layout (mismas 5 args que la original)
     genera_layout(sug.semana_cmp, sug.semana_cltv, sug.mes_nbco, sug.semana_lae, "append", spark=spark)
@@ -13,14 +13,14 @@ Copia este archivo al notebook.
 
 Parámetros de genera_layout(semana_cmp, semana_cltv, mes_nbco, semana_lae, modo):
   1 semana_cmp   insumos / servilleta (la más actual)
-  2 semana_cltv  último domingo de cada mes en fechas_cat (tope=hoy), <= insumo
+  2 semana_cltv  1 domingo por mes (fechas_cat), el más cercano PREVIO al insumo
   3 mes_nbco     YYYYMM. NBCO de mes M queda completa el día 5 de M+1
   4 semana_lae   última semana IMPAR previa al insumo (mismo lag que NBCO, en impar)
   5 modo         append | overwrite
 
-Las 3 fechas de apoyo NUNCA pueden ser posteriores al insumo.
-El calendario (fechas_cat) solo dice qué semana "debería" existir.
-La fuente de verdad es MAX/SHOW TABLES de cada tabla (equipos desfasados).
+Las 3 fechas de apoyo deben ser las más cercanas y PREVIAS al insumo.
+CLTV no se adivina por la última hog_* que exista: eso fue el error 202622
+cuando fechas_cat ya tenía 202626. La hog solo alerta, no manda.
 """
 
 from __future__ import annotations
@@ -168,6 +168,16 @@ def mes_nbco_por_regla(hoy=None):
 def mes_de_semana(semana):
     """Aprox YYYYMM a partir de YYYYWW (la semana no cruza de año en este código)."""
     return int(semana) // 100 * 100 + builtins.min(12, builtins.max(1, (int(semana) % 100 + 3) // 4))
+
+
+def semana_cltv_por_regla(domingos_mes, semana_cmp):
+    """
+    CLTV: hay 1 semana por mes = último domingo de cada mes en fechas_cat.
+    Se toma la más cercana ESTRICTAMENTE previa al insumo.
+    genera_layout(202630, 202626, ...) — 202626, no 202630 ni la hog vieja 202622.
+    """
+    previas = [int(w) for w in domingos_mes if int(w) < int(semana_cmp)]
+    return previas[0] if previas else None
 
 
 def es_semana_impar(semana):
@@ -424,9 +434,9 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
 
     - Insumo: MAX(fecha_salida) del pivote (partición o scan de 1 col),
               sin pasarse del último domingo <= hoy.
-    - CLTV:   último domingo de cada mes en fechas_cat (tope=hoy), <= insumo.
-              Si la hog de ese domingo no existe, se recorta al domingo de mes
-              más nuevo que sí tenga tabla.
+    - CLTV:   1 domingo por mes en fechas_cat (tope=hoy), el más cercano
+              PREVIO al insumo. La hog no manda: sugerir 202626 aunque
+              la última tabla que generaron sea 202622.
     - NBCO:   min(regla día 5, mes del insumo, MAX real de la tabla).
     - LAE:    min(última impar previa al insumo, MAX impar real de la tabla).
               Mismo lag que NBCO (no uses la semana actual), solo impares.
@@ -474,36 +484,29 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
         )
         semana_cmp = max_pivote
 
-    _paso("CLTV: último domingo de cada mes (fechas_cat)…")
+    _paso("CLTV: 1 domingo por mes en fechas_cat, previo al insumo…")
     domingos_mes = _domingos_por_mes(
         spark, hoy_num, tope_semana=semana_cmp, src=src["fechas"]
     )
-    regla_cltv = domingos_mes[0] if domingos_mes else None
-    hog_ok = []
-    for w in domingos_mes:
-        if _existe_tabla(spark, _tbl_semana(src["cltv_hog_tpl"], w)):
-            hog_ok.append(w)
+    regla_cltv = semana_cltv_por_regla(domingos_mes, semana_cmp)
+    semana_cltv = regla_cltv
+    hog_ok = [
+        w for w in domingos_mes
+        if _existe_tabla(spark, _tbl_semana(src["cltv_hog_tpl"], w))
+    ]
     max_hog = hog_ok[0] if hog_ok else None
     if regla_cltv is None:
-        _paso("  fechas_cat vacío; fallback SHOW TABLES hog_*")
-        hog_ok = _semanas_cltv_en_catalogo(spark, src["cltv_hog_tpl"], semana_cmp)
-        max_hog = hog_ok[0] if hog_ok else None
-        semana_cltv = max_hog
-        alertas.append("CLTV: fechas_cat no trajo domingos por mes <= insumo.")
-    elif max_hog is None:
-        semana_cltv = regla_cltv
         alertas.append(
-            f"CLTV: fechas_cat sugiere {regla_cltv} (último domingo de mes) "
-            f"pero no vi hog_{{semana}}_v2 en {domingos_mes[:8]}. "
-            "Confirma si falta corrida."
+            "CLTV: fechas_cat no trajo un domingo de mes previo al insumo. "
+            "No adivino con hog_* (eso fue el error 202622 vs 202626)."
         )
-    else:
-        semana_cltv = builtins.min(regla_cltv, max_hog)
-        if regla_cltv > max_hog:
-            alertas.append(
-                f"CLTV: el último domingo de mes es {regla_cltv}, "
-                f"pero la hog más nueva es {max_hog}."
-            )
+    elif max_hog != regla_cltv:
+        alertas.append(
+            f"CLTV: fechas_cat pide {regla_cltv} (1 domingo/mes, previo a "
+            f"{semana_cmp}). La hog más nueva que vi es {max_hog}. "
+            f"No uses {max_hog} solo porque es la última que generaron "
+            "(pasó con 202622 cuando ya existía 202626)."
+        )
     if semana_cltv is not None and not _existe_tabla(
         spark, _tbl_semana(src["cltv_activo_tpl"], semana_cltv)
     ):

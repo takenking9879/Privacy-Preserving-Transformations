@@ -6,6 +6,7 @@ from generar_layout_2 import (
     fecha_hoy_num,
     mes_de_semana,
     mes_nbco_por_regla,
+    semana_cltv_por_regla,
     semana_lae_por_regla,
 )
 
@@ -28,6 +29,15 @@ def test_nbco_dia_5():
 
 def test_mes_de_semana():
     assert mes_de_semana(202630) // 100 == 2026
+
+
+def test_cltv_domingo_mes_previo():
+    """1 semana/mes, la más cercana PREVIA al insumo. No la última hog."""
+    meses = [202630, 202626, 202622]
+    assert semana_cltv_por_regla(meses, 202630) == 202626
+    assert semana_cltv_por_regla(meses, 202626) == 202622
+    assert semana_cltv_por_regla([202639, 202635], 202639) == 202635
+    assert semana_cltv_por_regla([202622], 202622) is None
 
 
 def test_lae_ultima_impar():
@@ -115,10 +125,15 @@ def test_sugerir_con_tablas_falsas():
 
         sug = sugerir_parametros(spark, fecha_hoy=date(2026, 9, 23), imprimir=True)
         assert sug.semana_cmp == 202630, sug.semana_cmp
-        # último domingo de mes (jul) = 202630; hog solo hasta jun 202626
-        assert sug.disponible["cltv_regla"] == 202630, sug.disponible
+        # genera_layout(202630, 202626, …): domingo de mes PREVIO, no 202630
+        assert sug.disponible["cltv_regla"] == 202626, sug.disponible
         assert sug.disponible["cltv_domingos_mes"] == [202630, 202626, 202622], sug.disponible
         assert sug.semana_cltv == 202626, sug.semana_cltv
+
+        spark.sql("DROP TABLE ws_ektcomd_analitica.tt_1034848_cltv_futuros_hog_202626_v2")
+        sug_vieja = sugerir_parametros(spark, fecha_hoy=date(2026, 9, 23), imprimir=False)
+        assert sug_vieja.semana_cltv == 202626, sug_vieja.semana_cltv
+        assert sug_vieja.disponible["cltv_hog"] == 202622, sug_vieja.disponible
         # regla 202629, tabla impar 202627 → min = 202627
         assert sug.disponible["lae_regla"] == 202629, sug.disponible
         assert sug.semana_lae == 202627, sug.semana_lae
@@ -198,8 +213,8 @@ def test_sugerir_caso_20260928():
         sug = sugerir_parametros(spark, fecha_hoy=date(2026, 9, 28), imprimir=True)
         assert sug.semana_cmp == 202639, sug.semana_cmp
         assert sug.disponible["pivote_max"] == 202639, sug.disponible
-        # query fechas_cat: sep=202639, ago=202635. hog solo agosto → recorta
-        assert sug.disponible["cltv_regla"] == 202639, sug.disponible
+        # 1 domingo/mes previo a 202639 = agosto 202635 (no septiembre)
+        assert sug.disponible["cltv_regla"] == 202635, sug.disponible
         assert sug.disponible["cltv_domingos_mes"] == [202639, 202635], sug.disponible
         assert sug.semana_cltv == 202635, sug.semana_cltv
         assert sug.mes_nbco == 202608, sug.mes_nbco
@@ -217,6 +232,7 @@ if __name__ == "__main__":
     test_fecha_hoy_num()
     test_nbco_dia_5()
     test_mes_de_semana()
+    test_cltv_domingo_mes_previo()
     test_lae_ultima_impar()
     print("OK reglas sugeridor")
     test_sugerir_con_tablas_falsas()
