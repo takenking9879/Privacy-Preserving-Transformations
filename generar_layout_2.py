@@ -13,7 +13,7 @@ Copia este archivo al notebook.
 
 Parámetros de genera_layout(semana_cmp, semana_cltv, mes_nbco, semana_lae, modo):
   1 semana_cmp   insumos / servilleta (la más actual)
-  2 semana_cltv  CLTV + cerebro  (<= semana_cmp, la más cercana que EXISTA)
+  2 semana_cltv  último domingo de cada mes en fechas_cat (tope=hoy), <= insumo
   3 mes_nbco     YYYYMM. NBCO de mes M queda completa el día 5 de M+1
   4 semana_lae   última semana IMPAR previa al insumo (mismo lag que NBCO, en impar)
   5 modo         append | overwrite
@@ -337,7 +337,18 @@ def _semanas_calendario_atras(spark, tope, n=25, src=None):
 
 
 def _domingos_calendario(spark, hoy_num, src=None):
-    """Equivalente a tu query, con el tope = hoy (no 20260902)."""
+    """
+    Tu query de CLTV / contraste:
+
+        SELECT MAX(num_periodo_sem) AS semana, MAX(fec_num) AS fecha
+        FROM cd_gen_fechas_cat
+        WHERE num_dia_sem='7'
+          AND fec_num BETWEEN {anio}0101 AND {hoy}
+        GROUP BY num_periodo_mes
+        ORDER BY num_periodo_mes DESC
+
+    El tope de fecha es hoy (no 20260902).
+    """
     src = src or fuentes()["fechas"]
     anio = hoy_num // 10000
     return spark.sql(
@@ -353,6 +364,26 @@ def _domingos_calendario(spark, hoy_num, src=None):
         ORDER BY num_periodo_mes DESC
         """
     )
+
+
+def _domingos_por_mes(spark, hoy_num, tope_semana=None, src=None):
+    """Último domingo de cada mes (YYYYWW), más reciente primero."""
+    _paso(f"  fechas_cat  domingos/mes  tope_fec={hoy_num}  tope_sem={tope_semana}")
+    try:
+        spark.sparkContext.setJobDescription("sugerir_domingos_mes_cltv")
+        rows = _domingos_calendario(spark, hoy_num, src).collect()
+    except Exception as exc:
+        _paso(f"  WARN fechas_cat domingos/mes: {exc}")
+        return []
+    out = []
+    for r in rows:
+        if r["semana"] is None:
+            continue
+        w = int(r["semana"])
+        if tope_semana is not None and w > int(tope_semana):
+            continue
+        out.append(w)
+    return out
 
 
 def _mes_de_semana_cat(spark, semana, src=None):
@@ -393,8 +424,9 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
 
     - Insumo: MAX(fecha_salida) del pivote (partición o scan de 1 col),
               sin pasarse del último domingo <= hoy.
-    - CLTV:   MAX semana cuya TABLA hog_* exista y sea <= insumo.
-              Alerta si el calendario tiene semanas más nuevas (corrida faltante).
+    - CLTV:   último domingo de cada mes en fechas_cat (tope=hoy), <= insumo.
+              Si la hog de ese domingo no existe, se recorta al domingo de mes
+              más nuevo que sí tenga tabla.
     - NBCO:   min(regla día 5, mes del insumo, MAX real de la tabla).
     - LAE:    min(última impar previa al insumo, MAX impar real de la tabla).
               Mismo lag que NBCO (no uses la semana actual), solo impares.
@@ -442,25 +474,43 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
         )
         semana_cmp = max_pivote
 
-    _paso("CLTV: existencias hog_{semana}…")
-    semanas_cltv = _semanas_cltv_en_catalogo(spark, src["cltv_hog_tpl"], semana_cmp)
-    semana_cltv = semanas_cltv[0] if semanas_cltv else None
-    cal_atras = _semanas_calendario_atras(spark, semana_cmp, n=8, src=src["fechas"])
-    if semana_cltv is None:
-        alertas.append("CLTV: no encontré ninguna tabla hog_{semana}_v2 <= insumo.")
+    _paso("CLTV: último domingo de cada mes (fechas_cat)…")
+    domingos_mes = _domingos_por_mes(
+        spark, hoy_num, tope_semana=semana_cmp, src=src["fechas"]
+    )
+    regla_cltv = domingos_mes[0] if domingos_mes else None
+    hog_ok = []
+    for w in domingos_mes:
+        if _existe_tabla(spark, _tbl_semana(src["cltv_hog_tpl"], w)):
+            hog_ok.append(w)
+    max_hog = hog_ok[0] if hog_ok else None
+    if regla_cltv is None:
+        _paso("  fechas_cat vacío; fallback SHOW TABLES hog_*")
+        hog_ok = _semanas_cltv_en_catalogo(spark, src["cltv_hog_tpl"], semana_cmp)
+        max_hog = hog_ok[0] if hog_ok else None
+        semana_cltv = max_hog
+        alertas.append("CLTV: fechas_cat no trajo domingos por mes <= insumo.")
+    elif max_hog is None:
+        semana_cltv = regla_cltv
+        alertas.append(
+            f"CLTV: fechas_cat sugiere {regla_cltv} (último domingo de mes) "
+            f"pero no vi hog_{{semana}}_v2 en {domingos_mes[:8]}. "
+            "Confirma si falta corrida."
+        )
     else:
-        hueco = [w for w in cal_atras if w > semana_cltv]
-        if hueco:
+        semana_cltv = builtins.min(regla_cltv, max_hog)
+        if regla_cltv > max_hog:
             alertas.append(
-                f"CLTV: la tabla más nueva es {semana_cltv}, pero el calendario "
-                f"tiene {hueco} entre esa y el insumo {semana_cmp}. "
-                f"Puede faltar corrida (pasó con 202622 vs 202626)."
+                f"CLTV: el último domingo de mes es {regla_cltv}, "
+                f"pero la hog más nueva es {max_hog}."
             )
-        if not _existe_tabla(spark, _tbl_semana(src["cltv_activo_tpl"], semana_cltv)):
-            alertas.append(
-                f"CLTV activo no existe para {semana_cltv}: "
-                f"{_tbl_semana(src['cltv_activo_tpl'], semana_cltv)}"
-            )
+    if semana_cltv is not None and not _existe_tabla(
+        spark, _tbl_semana(src["cltv_activo_tpl"], semana_cltv)
+    ):
+        alertas.append(
+            f"CLTV activo no existe para {semana_cltv}: "
+            f"{_tbl_semana(src['cltv_activo_tpl'], semana_cltv)}"
+        )
 
     max_cerebro = _max_particion(spark, src["cerebro"], "num_periodo_sem", tope=semana_cmp)
     if semana_cltv and max_cerebro and semana_cltv > max_cerebro:
@@ -518,7 +568,10 @@ def sugerir_parametros(spark, fecha_hoy=None, semana_cmp=None, imprimir=True):
         semana_calendario_max=semana_cal,
         disponible={
             "pivote_max": max_pivote,
-            "cltv_tablas": semanas_cltv[:8],
+            "cltv_regla": regla_cltv,
+            "cltv_domingos_mes": domingos_mes[:12],
+            "cltv_hog": max_hog,
+            "cltv_tablas": hog_ok[:8],
             "cerebro_max": max_cerebro,
             "nbco_max": max_nbco,
             "nbco_regla": mes_regla,
@@ -544,7 +597,12 @@ def _imprimir_sugerencia(sug, spark):
     print(f"SUGERENCIA  hoy={sug.hoy_num}  domingo_cal={sug.semana_calendario_max}")
     print("=" * 72)
     print(f"  1 insumo / cmp   {sug.semana_cmp}   (MAX pivote={sug.disponible['pivote_max']})")
-    print(f"  2 cltv           {sug.semana_cltv}   (tablas hog={sug.disponible['cltv_tablas']})")
+    print(
+        f"  2 cltv           {sug.semana_cltv}   "
+        f"(domingo_mes={sug.disponible['cltv_regla']}  "
+        f"hog={sug.disponible['cltv_hog']}  "
+        f"meses={sug.disponible['cltv_domingos_mes']})"
+    )
     print(
         f"  3 nbco mes       {sug.mes_nbco}   "
         f"(regla_dia5={sug.disponible['nbco_regla']}  "
@@ -567,7 +625,7 @@ def _imprimir_sugerencia(sug, spark):
     else:
         print("Sin alertas: calendario y tablas cuadran.")
     print()
-    print("Domingos por mes (tope=hoy), para contrastar:")
+    print("CLTV / contraste — último domingo de cada mes (fechas_cat, tope=hoy):")
     try:
         _domingos_calendario(spark, sug.hoy_num).show(12, truncate=False)
     except Exception as exc:

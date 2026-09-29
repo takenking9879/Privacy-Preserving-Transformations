@@ -115,6 +115,9 @@ def test_sugerir_con_tablas_falsas():
 
         sug = sugerir_parametros(spark, fecha_hoy=date(2026, 9, 23), imprimir=True)
         assert sug.semana_cmp == 202630, sug.semana_cmp
+        # último domingo de mes (jul) = 202630; hog solo hasta jun 202626
+        assert sug.disponible["cltv_regla"] == 202630, sug.disponible
+        assert sug.disponible["cltv_domingos_mes"] == [202630, 202626, 202622], sug.disponible
         assert sug.semana_cltv == 202626, sug.semana_cltv
         # regla 202629, tabla impar 202627 → min = 202627
         assert sug.disponible["lae_regla"] == 202629, sug.disponible
@@ -128,7 +131,7 @@ def test_sugerir_con_tablas_falsas():
 
 
 def test_sugerir_caso_20260928():
-    """El dump raro: pivote sin partición, CLTV por nombre, LAE impar atrasada."""
+    """Pivote sin partición, CLTV = domingo de mes (fechas_cat), LAE impar."""
     import os
     import shutil
     import tempfile
@@ -190,12 +193,15 @@ def test_sugerir_caso_20260928():
 
         spark.createDataFrame([("M1", 1.0)], "id_master STRING, cltv DOUBLE").write.mode(
             "overwrite"
-        ).saveAsTable("ws_ektcomd_analitica.tt_1034848_cltv_futuros_hog_202637_v2")
+        ).saveAsTable("ws_ektcomd_analitica.tt_1034848_cltv_futuros_hog_202635_v2")
 
         sug = sugerir_parametros(spark, fecha_hoy=date(2026, 9, 28), imprimir=True)
         assert sug.semana_cmp == 202639, sug.semana_cmp
         assert sug.disponible["pivote_max"] == 202639, sug.disponible
-        assert sug.semana_cltv == 202637, sug.semana_cltv
+        # query fechas_cat: sep=202639, ago=202635. hog solo agosto → recorta
+        assert sug.disponible["cltv_regla"] == 202639, sug.disponible
+        assert sug.disponible["cltv_domingos_mes"] == [202639, 202635], sug.disponible
+        assert sug.semana_cltv == 202635, sug.semana_cltv
         assert sug.mes_nbco == 202608, sug.mes_nbco
         assert sug.disponible["lae_regla"] == 202637, sug.disponible
         # tabla solo 202635 → se recorta, con alerta de carga faltante
