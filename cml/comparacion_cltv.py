@@ -1,0 +1,115 @@
+# Pega esta celda en CML. Usa el magic de Impala (%%sql) por debajo.
+from IPython import get_ipython
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy import stats
+
+TABLE_A = "ws_ektcomd_analitica.tt_1117091_CLTV_futuros_efectivo_202501"
+TABLE_B = "ws_ektcomd_analitica.tt_1034848_cltv_futuros_efe_202452"
+LABEL_A, LABEL_B = "202501", "202452"
+N = 100000
+ALPHA = 0.05
+
+NUM = [
+    "plz_estimado_asignado", "cdp", "ticket_promedio", "cdp_ajustada",
+    "monto_topado", "plz_estimado", "tasa_estimada", "mto_capital",
+    "factor_prepago", "tasa_estimada_ajustada", "plz_estimado_ajustado",
+    "intereses", "bhs_score", "reservas_esperadas", "costo_calles_esperadas",
+    "costo_llamada_esperadas", "costo_sms_esperadas", "positivos",
+    "negativos", "value", "esperanza_efe", "cltv",
+]
+
+
+def run_sql(query, name):
+    get_ipython().run_cell_magic("sql", f"-o {name}", query)
+    return get_ipython().user_ns[name]
+
+
+df_a = run_sql(f"""
+SELECT
+  cast(plz_estimado_asignado AS double) AS plz_estimado_asignado,
+  cdp, ticket_promedio, cdp_ajustada, monto_topado, plz_estimado,
+  tasa_estimada, mto_capital, factor_prepago, tasa_estimada_ajustada,
+  plz_estimado_ajustado, intereses, bhs_score,
+  cast(familia AS string) AS familia,
+  reservas_esperadas, costo_calles_esperadas, costo_llamada_esperadas,
+  costo_sms_esperadas, positivos, negativos, value,
+  esperanza_efe, cltv,
+  cast(num_periodo_sem AS string) AS num_periodo_sem
+FROM {TABLE_A}
+WHERE rand() < 0.2
+LIMIT {N}
+""", "df_a")
+
+df_b = run_sql(f"""
+SELECT
+  cast(plz_estimado_asignado AS double) AS plz_estimado_asignado,
+  cdp, ticket_promedio, cdp_ajustada, monto_topado, plz_estimado,
+  tasa_estimada, mto_capital, factor_prepago, tasa_estimada_ajustada,
+  plz_estimado_ajustado, intereses, bhs_score,
+  cast(familia AS string) AS familia,
+  reservas_esperadas, costo_calles_esperadas, costo_llamada_esperadas,
+  costo_sms_esperadas, positivos, negativos, value,
+  esperanza_efe_fin AS esperanza_efe, cltv,
+  cast(num_periodo_sem AS string) AS num_periodo_sem
+FROM {TABLE_B}
+WHERE rand() < 0.2
+LIMIT {N}
+""", "df_b")
+
+print(f"n {LABEL_A}={len(df_a):,}  n {LABEL_B}={len(df_b):,}")
+print("solo en B: intereses2 (no se compara)")
+
+print("\n=== NULOS ===")
+for col in NUM + ["familia", "num_periodo_sem"]:
+    pa = df_a[col].isna().mean() * 100
+    pb = df_b[col].isna().mean() * 100
+    print(f"{col:30s}  {LABEL_A} {pa:5.2f}%   {LABEL_B} {pb:5.2f}%")
+
+print(f"\n=== NUMERICAS  (KS, alpha={ALPHA}) ===")
+for col in NUM:
+    a = pd.to_numeric(df_a[col], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+    b = pd.to_numeric(df_b[col], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+    if len(a) < 30 or len(b) < 30:
+        print(f"{col}: muy pocos datos, skip")
+        continue
+    ratio = (a.median() / b.median()) if b.median() != 0 else np.nan
+    ks = stats.ks_2samp(a, b)
+    sig = "SI, diferencia estadisticamente significativa" if ks.pvalue < ALPHA else "NO, no hay evidencia de diferencia"
+    print(
+        f"{col}: p={ks.pvalue:.4g}  KS={ks.statistic:.3f}  "
+        f"med {LABEL_A}={a.median():.4g} [{a.min():.4g}, {a.max():.4g}]  "
+        f"med {LABEL_B}={b.median():.4g} [{b.min():.4g}, {b.max():.4g}]  "
+        f"razon_medianas={ratio:.3g}  → {sig}"
+    )
+
+print(f"\n=== CATEGORICAS  (chi2, alpha={ALPHA}) ===")
+for col in ["familia", "num_periodo_sem", "bhs_score"]:
+    ta = df_a[col].astype("string").value_counts(dropna=False)
+    tb = df_b[col].astype("string").value_counts(dropna=False)
+    idx = ta.index.union(tb.index)
+    table = np.vstack([ta.reindex(idx, fill_value=0), tb.reindex(idx, fill_value=0)])
+    chi2, p, _, _ = stats.chi2_contingency(table)
+    sig = "SI, diferencia estadisticamente significativa" if p < ALPHA else "NO, no hay evidencia de diferencia"
+    print(f"{col}: p={p:.4g}  chi2={chi2:.2f}  → {sig}")
+    mix = pd.DataFrame({LABEL_A: ta / ta.sum(), LABEL_B: tb / tb.sum()}).fillna(0)
+    print(mix.assign(diff=lambda d: d[LABEL_B] - d[LABEL_A]).sort_values("diff", key=lambda s: s.abs(), ascending=False).head(8))
+
+ncols = 4
+nrows = int(np.ceil(len(NUM) / ncols))
+fig, axes = plt.subplots(nrows, ncols, figsize=(16, 3.2 * nrows))
+for ax, col in zip(axes.ravel(), NUM):
+    a = pd.to_numeric(df_a[col], errors="coerce").dropna()
+    b = pd.to_numeric(df_b[col], errors="coerce").dropna()
+    lo = np.nanpercentile(np.concatenate([a, b]), 1)
+    hi = np.nanpercentile(np.concatenate([a, b]), 99)
+    ax.hist(a, bins=40, density=True, alpha=0.45, range=(lo, hi), label=LABEL_A)
+    ax.hist(b, bins=40, density=True, alpha=0.45, range=(lo, hi), label=LABEL_B)
+    ax.set_title(col, fontsize=9)
+    ax.legend(fontsize=7)
+for ax in axes.ravel()[len(NUM):]:
+    ax.axis("off")
+fig.suptitle("Densidades (colas 1-99 recortadas)", y=1.01)
+fig.tight_layout()
+plt.show()
