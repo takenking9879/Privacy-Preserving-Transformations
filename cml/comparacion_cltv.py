@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 TABLE_A = "ws_ektcomd_analitica.tt_1117091_CLTV_futuros_efectivo_202501"
-TABLE_B = "ws_ektcomd_analitica.tt_1034848_cltv_futuros_efe_202452"
-LABEL_A, LABEL_B = "202501", "202452"
+TABLE_B = "ws_ektcomd_analitica.tt_1034848_cltv_futuros_efectivo_202523"
+LABEL_A, LABEL_B = "202501", "202523"
 N = 100000
 ALPHA = 0.05
 
@@ -48,13 +48,16 @@ LIMIT {N}
 df_b = run_sql(f"""
 SELECT
   cast(plz_estimado_asignado AS double) AS plz_estimado_asignado,
-  cdp, ticket_promedio, cdp_ajustada, monto_topado, plz_estimado,
+  cast(cdp AS double) AS cdp,
+  ticket_promedio,
+  cast(cdp_ajustada AS double) AS cdp_ajustada,
+  monto_topado, plz_estimado,
   tasa_estimada, mto_capital, factor_prepago, tasa_estimada_ajustada,
   plz_estimado_ajustado, intereses, bhs_score,
   cast(familia AS string) AS familia,
   reservas_esperadas, costo_calles_esperadas, costo_llamada_esperadas,
   costo_sms_esperadas, positivos, negativos, value,
-  esperanza_efe_fin AS esperanza_efe, cltv,
+  esperanza_efe, cltv,
   cast(num_periodo_sem AS string) AS num_periodo_sem
 FROM {TABLE_B}
 WHERE rand() < 0.2
@@ -62,7 +65,7 @@ LIMIT {N}
 """, "df_b")
 
 print(f"n {LABEL_A}={len(df_a):,}  n {LABEL_B}={len(df_b):,}")
-print("solo en B: intereses2 (no se compara)")
+print("solo en B: intereses2, esperanza_efe_ (no se comparan)")
 
 print("\n=== NULOS ===")
 for col in NUM + ["familia", "num_periodo_sem"]:
