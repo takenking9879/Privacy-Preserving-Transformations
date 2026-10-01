@@ -1,9 +1,17 @@
 # Pega esta celda en CML. Usa el magic de Impala (%%sql) por debajo.
 from IPython import get_ipython
+from IPython.display import display, Image
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
+
+ip = get_ipython()
+if ip is not None:
+    try:
+        ip.run_line_magic("matplotlib", "inline")
+    except Exception:
+        pass
 
 TABLE_A = "ws_ektcomd_analitica.tt_1117091_CLTV_futuros_efectivo_202501"
 TABLE_B = "ws_ektcomd_analitica.tt_1034848_cltv_futuros_efectivo_202523"
@@ -102,20 +110,36 @@ for col in ["familia", "num_periodo_sem", "bhs_score"]:
     mix = pd.DataFrame({LABEL_A: ta / ta.sum(), LABEL_B: tb / tb.sum()}).fillna(0)
     print(mix.assign(diff=lambda d: d[LABEL_B] - d[LABEL_A]).sort_values("diff", key=lambda s: s.abs(), ascending=False).head(8))
 
+print("\n=== GRAFICAS ===")
 ncols = 4
 nrows = int(np.ceil(len(NUM) / ncols))
 fig, axes = plt.subplots(nrows, ncols, figsize=(16, 3.2 * nrows))
 for ax, col in zip(axes.ravel(), NUM):
-    a = pd.to_numeric(df_a[col], errors="coerce").dropna()
-    b = pd.to_numeric(df_b[col], errors="coerce").dropna()
-    lo = np.nanpercentile(np.concatenate([a, b]), 1)
-    hi = np.nanpercentile(np.concatenate([a, b]), 99)
+    a = pd.to_numeric(df_a[col], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna().to_numpy()
+    b = pd.to_numeric(df_b[col], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna().to_numpy()
+    both = np.concatenate([x for x in (a, b) if len(x)])
+    if len(both) == 0:
+        ax.set_title(f"{col} (sin datos)")
+        continue
+    lo, hi = np.nanpercentile(both, [1, 99])
+    if not np.isfinite(lo) or not np.isfinite(hi) or lo >= hi:
+        lo, hi = float(np.nanmin(both)), float(np.nanmax(both))
+        if lo == hi:
+            lo, hi = lo - 1, hi + 1
     ax.hist(a, bins=40, density=True, alpha=0.45, range=(lo, hi), label=LABEL_A)
     ax.hist(b, bins=40, density=True, alpha=0.45, range=(lo, hi), label=LABEL_B)
     ax.set_title(col, fontsize=9)
     ax.legend(fontsize=7)
 for ax in axes.ravel()[len(NUM):]:
     ax.axis("off")
-fig.suptitle("Densidades (colas 1-99 recortadas)", y=1.01)
-fig.tight_layout()
+fig.suptitle(f"Densidades {LABEL_A} vs {LABEL_B} (colas 1-99)", y=1.01)
+try:
+    fig.tight_layout()
+except Exception:
+    pass
+png = "/tmp/comparacion_cltv.png"
+fig.savefig(png, dpi=110, bbox_inches="tight")
+display(fig)
+display(Image(png))
 plt.show()
+print(f"grafica guardada en {png}")
