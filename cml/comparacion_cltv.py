@@ -22,8 +22,11 @@ NUM = [
 
 
 def run_sql(query, name):
-    get_ipython().run_cell_magic("sql", f"-o {name}", query)
-    return get_ipython().user_ns[name]
+    # El %%sql de Impala/jupysql no acepta -o; se usa: %%sql df <<
+    ip = get_ipython()
+    ip.run_cell_magic("sql", f"{name} <<", query)
+    out = ip.user_ns[name]
+    return out.DataFrame() if hasattr(out, "DataFrame") else out
 
 
 df_a = run_sql(f"""
