@@ -76,7 +76,7 @@ for col in NUM:
         continue
     ratio = (a.median() / b.median()) if b.median() != 0 else np.nan
     ks = stats.ks_2samp(a, b)
-    sig = "SI, diferencia estadisticamente significativa" if ks.pvalue < ALPHA else "NO, no hay evidencia de diferencia"
+    sig = "Si es un cambio significativo" if ks.pvalue < ALPHA else "No es un cambio significativo"
     print(
         f"{col}: p={ks.pvalue:.4g}  KS={ks.statistic:.3f}  "
         f"med {LABEL_A}={a.median():.4g} [{a.min():.4g}, {a.max():.4g}]  "
@@ -91,7 +91,7 @@ for col in ["familia", "num_periodo_sem", "bhs_score"]:
     idx = ta.index.union(tb.index)
     table = np.vstack([ta.reindex(idx, fill_value=0), tb.reindex(idx, fill_value=0)])
     chi2, p, _, _ = stats.chi2_contingency(table)
-    sig = "SI, diferencia estadisticamente significativa" if p < ALPHA else "NO, no hay evidencia de diferencia"
+    sig = "Si es un cambio significativo" if p < ALPHA else "No es un cambio significativo"
     print(f"{col}: p={p:.4g}  chi2={chi2:.2f}  → {sig}")
     mix = pd.DataFrame({LABEL_A: ta / ta.sum(), LABEL_B: tb / tb.sum()}).fillna(0)
     print(mix.assign(diff=lambda d: d[LABEL_B] - d[LABEL_A]).sort_values("diff", key=lambda s: s.abs(), ascending=False).head(8))
